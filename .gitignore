@@ -17,10 +17,10 @@ __pycache__/
 
 # macOS
 .DS_Store
+.vscode
 
 # Umgebungsvariablen
 .env
-.vscode
 
 # CSV oder Daten
 *.csv
