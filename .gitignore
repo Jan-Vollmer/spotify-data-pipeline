@@ -1,0 +1,27 @@
+# Virtuelle Umgebungen
+venv/
+spotify-venv/
+bin/
+lib/
+pyvenv.cfg
+
+# Spotify Cache / Tokens
+.spotify_token_cache
+.cache
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# Umgebungsvariablen
+.env
+
+# CSV oder Daten
+*.csv
+*.json
+refresh_token*.txt
