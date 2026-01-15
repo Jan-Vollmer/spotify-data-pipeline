@@ -1,118 +1,52 @@
-# =========================================
-# Python Virtuelle Umgebungen – Kurzübersicht
-# =========================================
+# Data Engineering Knowledge Base
 
-1. Virtuelle Umgebung erstellen
---------------------------------
-python3 -m venv name-venv
-# Erstellt Ordner 'name-venv' mit isolierter Python-Installation und eigenem Paketordner
+Diese Knowledge Base sammelt bewährte Prozesse,
+Architektur-Patterns und Entscheidungslogiken
+für Data-Engineering-Projekte.
 
-2. Virtuelle Umgebung aktivieren
---------------------------------
-# Linux/macOS
-source name-venv/bin/activate
+Sie ist technologieagnostisch und dient als
+Referenz für konsistentes Vorgehen.
 
-# Windows PowerShell
-.\name-venv\Scripts\Activate.ps1
+## Data Warehouse Layering (Standard)
+- Source / Raw: unveränderte Quelldaten
+- Staging: technische Vereinheitlichung
+- Core / Business: fachliche Logik
+- Presentation: analytische Modelle
 
-# Windows CMD
-.\name-venv\Scripts\activate.bat
-# Nach Aktivierung zeigt Terminal (name-venv) vor dem Prompt
+## Wann welches Schema?
 
-3. Pakete installieren
-----------------------
-python -m pip install <paketname>
-# Beispiel: python -m pip install spotipy pandas requests
-# Pakete werden nur in dieser name-venv installiert
+### Star Schema
+- BI- und Reporting-Fokus
+- einfache Queries
+- klare Fakten
 
-4. Installierte Pakete auflisten
---------------------------------
-python -m pip list
-# Zeigt alle Pakete in der aktuellen venv
+### Snowflake Schema
+- große Dimensionen
+- weniger Redundanz
+- komplexere Abfragen
 
-5. Pakete versionieren / Requirements
--------------------------------------
-python -m pip freeze > requirements.txt
-python -m pip install -r requirements.txt
-# Ermöglicht reproduzierbare Umgebungen
+### Data Vault
+- hohe Änderungsrate
+- viele Quellsysteme
+- Historisierung im Fokus
 
-6. Virtuelle Umgebung deaktivieren
-----------------------------------
-deactivate
-# Schließt die venv, Terminal nutzt wieder globales Python
+## ETL vs ELT – Entscheidungsleitfaden
+- Die Wahl zwischen ETL und ELT ist kontextabhängig und beeinflusst Flexibilität, Performance und Wartbarkeit.
+- On-Prem → eher ETL
+- Cloud-DWH → eher ELT
+- Unklare Anforderungen → ELT
+- Stabile Business-Logik → ETL
 
-7. VS Code einstellen
---------------------
-1. Projektordner öffnen
-2. Strg+Shift+P / Cmd+Shift+P → "Python: Select Interpreter"
-3. Wähle Python aus der venv:
-   - Linux/macOS: ./venv/bin/python
-   - Windows: .\venv\Scripts\python.exe
-4. Terminal in VS Code nutzt automatisch die venv
+## Mindeststandards
+- Primärschlüssel eindeutig
+- Pflichtfelder nicht NULL
+- Typen explizit definiert
+- Zeitstempel konsistent
 
-------------------------------------------------------------------------------------
+## Datenverantwortung
+- Klare Verantwortung pro Datendomäne
+- Trennung von technischer und fachlicher Logik
+- Business-Definitionen zentral dokumentiert
 
-# Python – Virtuelle Umgebungen
-
-# Erstellen
-python3 -m venv venv
-
-# Aktivieren
-source venv/bin/activate        # macOS/Linux
-venv\Scripts\activate           # Windows
-
-# Deaktivieren
-deactivate
-
-# Pakete
-pip install <paket>
-pip list
-
-# Requirements
-pip freeze > requirements.txt
-pip install -r requirements.txt
-
-# VS Code
-Strg+Shift+P → "Python: Select Interpreter"
-→ wähle ./venv/bin/python (bzw. .\venv\Scripts\python.exe)
-
-------------------------------------------------------------------------------------
-
-# Pytest
-## Ausführen
-PYTHONPATH=$(pwd) pytest
-
-------------------------------------------------------------------------------------
-
-# Git – Kurzbefehle
-
-git init                  → Neues Repository erstellen
-git clone <url>           → Repo von GitHub klonen
-git status                → Status anzeigen
-git add <datei>           → Datei zum Commit hinzufügen
-git add .                 → Alle Änderungen hinzufügen
-git commit -m "msg"       → Commit mit Nachricht
-git log                   → Commit-Historie anzeigen
-git diff                  → Änderungen anzeigen
-
-# Branches
-git branch                → Branches anzeigen
-git branch <name>         → Neuen Branch erstellen
-git switch <name>         → Branch wechseln
-git merge <name>          → Branch in aktuellen mergen
-git branch -d <name>      → Branch löschen
-
-# Remote / GitHub
-git remote -v             → Remote-Repos anzeigen
-git remote add origin <url> → Remote hinzufügen
-git push -u origin main   → Ersten Push zum Remote
-git push                  → Änderungen hochladen
-git pull                  → Änderungen vom Remote holen
-git fetch                 → Änderungen abrufen (ohne Merge)
-
-# Aufräumen / Rückgängig
-git rm --cached <datei>   → Datei aus Tracking entfernen
-git restore <datei>       → Datei zurücksetzen
-git reset --hard HEAD     → Alles auf letzten Commit zurücksetzen
-git stash                 → Änderungen zwischenspeichern
-git stash pop             → Gespeicherte Änderungen wiederherstellen
+Diese Standards werden im Spotify-Projekt
+bewusst vereinfacht angewendet.
