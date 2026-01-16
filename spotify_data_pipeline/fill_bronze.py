@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
+from datetime import datetime
 from auth import get_or_refresh_token
 from get_top_tracks import get_top_tracks
 from get_top_artists import get_top_artists
 from get_last_played import get_last_played
+from bronze_helper import write_bronze_batch
 
 def fill_bronze(limit_top: int = None, limit_recent: int = None, time_range: str = None):
     
@@ -30,13 +32,26 @@ def fill_bronze(limit_top: int = None, limit_recent: int = None, time_range: str
         track = r["track"]
         print(f"{i}. {track['name']} – {track['artists'][0]['name']}")
     
-    with open("data/bronze/top_tracks.json", "w", encoding="utf-8") as f:
-        json.dump(top_tracks, f, ensure_ascii=False, indent=4)
+    downloaded_at = datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S")
+
+    write_bronze_batch(
+    entity="top_tracks",
+    payload=top_tracks,
+    downloaded_at=downloaded_at,
+    subdir=f"time_range={time_range or 'default'}"
+    )
     
-    with open("data/bronze/top_artists.json", "w", encoding="utf-8") as f:
-        json.dump(top_artists, f, ensure_ascii=False, indent=4)
+    write_bronze_batch(
+    entity="top_artists",
+    payload=top_artists,
+    downloaded_at=downloaded_at,
+    subdir=f"time_range={time_range or 'default'}"
+    )
     
-    with open("data/bronze/recent_tracks.json", "w", encoding="utf-8") as f:
-        json.dump(recent_tracks, f, ensure_ascii=False, indent=4)
+    write_bronze_batch(
+    entity="recent_tracks",
+    payload=recent_tracks,
+    downloaded_at=downloaded_at
+    )
     
     return top_tracks, top_artists, recent_tracks
