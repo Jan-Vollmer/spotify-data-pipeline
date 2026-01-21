@@ -16,7 +16,7 @@ RECENT_TRACKS = [
 ]
 
 @patch("spotify_data_pipeline.fill_bronze.write_bronze_batch")
-@patch("spotify_data_pipeline.fill_bronze.get_last_played")
+@patch("spotify_data_pipeline.fill_bronze.get_recent_tracks")
 @patch("spotify_data_pipeline.fill_bronze.get_top_artists")
 @patch("spotify_data_pipeline.fill_bronze.get_top_tracks")
 @patch("spotify_data_pipeline.fill_bronze.get_or_refresh_token")
@@ -24,14 +24,14 @@ def test_fill_bronze_happy_path(
     mock_get_token,
     mock_get_top_tracks,
     mock_get_top_artists,
-    mock_get_last_played,
+    mock_get_recent_tracks,
     mock_write_bronze,
 ):
 
     mock_get_token.side_effect = ["token_top", "token_recent"]
     mock_get_top_tracks.return_value = TOP_TRACKS
     mock_get_top_artists.return_value = TOP_ARTISTS
-    mock_get_last_played.return_value = RECENT_TRACKS
+    mock_get_recent_tracks.return_value = RECENT_TRACKS
 
     result = fb.fill_bronze(limit_top=10, limit_recent=5, time_range="short_term")
 
@@ -46,14 +46,14 @@ def test_fill_bronze_happy_path(
     mock_get_top_artists.assert_called_once_with(
         "token_top", limit=10, time_range="short_term"
     )
-    mock_get_last_played.assert_called_once_with(
+    mock_get_recent_tracks.assert_called_once_with(
         "token_recent", limit=5
     )
 
     assert mock_write_bronze.call_count == 3
 
 @patch("spotify_data_pipeline.fill_bronze.write_bronze_batch")
-@patch("spotify_data_pipeline.fill_bronze.get_last_played", return_value=RECENT_TRACKS)
+@patch("spotify_data_pipeline.fill_bronze.get_recent_tracks", return_value=RECENT_TRACKS)
 @patch("spotify_data_pipeline.fill_bronze.get_top_artists", return_value=TOP_ARTISTS)
 @patch("spotify_data_pipeline.fill_bronze.get_top_tracks", return_value=TOP_TRACKS)
 @patch("spotify_data_pipeline.fill_bronze.get_or_refresh_token", return_value="token")

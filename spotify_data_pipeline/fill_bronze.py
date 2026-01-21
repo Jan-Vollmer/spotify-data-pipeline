@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 from datetime import datetime
 from itertools import islice
-from auth import get_or_refresh_token
-from get_top_tracks import get_top_tracks
-from get_top_artists import get_top_artists
-from get_recent_tracks import get_recent_tracks
-from bronze_helper import write_bronze_batch
+from .auth import get_or_refresh_token
+from .get_top_tracks import get_top_tracks
+from .get_top_artists import get_top_artists
+from .get_recent_tracks import get_recent_tracks
+from .bronze_helper import write_bronze_batch
 
 def fill_bronze(limit_top: int = None, limit_recent: int = None, time_range: str = None):
     

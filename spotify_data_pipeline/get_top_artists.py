@@ -1,5 +1,5 @@
 import requests
-from error_handler import handle_http_error
+from spotify_data_pipeline.error_handler import handle_http_error
 
 def get_top_artists(access_token: str, limit: int = None, time_range: str = None) -> list:
 
