@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 from datetime import datetime
 from itertools import islice
-from spotify_data_pipeline.auth import get_or_refresh_token
-from spotify_data_pipeline.get_top_tracks import get_top_tracks
-from spotify_data_pipeline.get_top_artists import get_top_artists
-from spotify_data_pipeline.get_last_played import get_last_played
-from spotify_data_pipeline.bronze_helper import write_bronze_batch
+from auth import get_or_refresh_token
+from get_top_tracks import get_top_tracks
+from get_top_artists import get_top_artists
+from get_recent_tracks import get_recent_tracks
+from bronze_helper import write_bronze_batch
 
 def fill_bronze(limit_top: int = None, limit_recent: int = None, time_range: str = None):
     
@@ -17,7 +17,7 @@ def fill_bronze(limit_top: int = None, limit_recent: int = None, time_range: str
     
     top_tracks = get_top_tracks(access_top, limit=limit_top, time_range=time_range)
     top_artists = get_top_artists(access_top, limit=limit_top, time_range=time_range)
-    recent_tracks = get_last_played(access_recent, limit=limit_recent)
+    recent_tracks = get_recent_tracks(access_recent, limit=limit_recent)
     
     print("\nTop Tracks:")
     for i, t in enumerate(top_tracks, start=1):

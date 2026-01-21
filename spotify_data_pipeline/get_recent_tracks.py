@@ -1,8 +1,8 @@
 import requests
 import time
-from spotify_data_pipeline.error_handler import handle_http_error
+from error_handler import handle_http_error
 
-def get_last_played(access_token: str, limit: int = None, after: int = None) -> list:
+def get_recent_tracks(access_token: str, limit: int = None, after: int = None) -> list:
 
     headers = {"Authorization": f"Bearer {access_token}"}
 
