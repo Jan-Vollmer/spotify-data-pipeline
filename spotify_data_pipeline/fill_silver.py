@@ -1,4 +1,4 @@
-from fill_silver_recent_tracks import fill_silver_recent_tracks
+from .fill_silver_recent_tracks import fill_silver_recent_tracks
 # from spotify_data_pipeline.fill_silver_top_tracks import fill_silver_top_tracks
 # from spotify_data_pipeline.fill_silver_top_artists import fill_silver_top_artists
 
