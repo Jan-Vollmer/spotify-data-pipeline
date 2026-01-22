@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import pytest
-from spotify_data_pipeline.bronze_helper import write_bronze_batch
+from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch
 
 def test_write_bronze_batch_creates_file_and_writes_json(tmp_path: Path):
     entity = "customer"
