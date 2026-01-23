@@ -15,6 +15,7 @@ RECENT_TRACKS = [
     {"track": {"name": "Track X", "artists": [{"name": "Artist Z"}]}},
 ]
 
+@patch("spotify_data_pipeline.helpers.bronze_helper.write_bronze_batch")
 @patch("spotify_data_pipeline.fill_bronze.write_bronze_batch")
 @patch("spotify_data_pipeline.fill_bronze.get_recent_tracks")
 @patch("spotify_data_pipeline.fill_bronze.get_top_artists")
@@ -25,7 +26,8 @@ def test_fill_bronze_happy_path(
     mock_get_top_tracks,
     mock_get_top_artists,
     mock_get_recent_tracks,
-    mock_write_bronze,
+    mock_write_fill,
+    mock_write_helper,
 ):
 
     mock_get_token.side_effect = ["token_top", "token_recent"]
@@ -35,19 +37,18 @@ def test_fill_bronze_happy_path(
 
     downloaded_at = fb.fill_bronze(limit_top=10, limit_recent=5)
 
-    assert mock_write_bronze.call_count == 1
+    assert mock_write_helper.call_count == 6
+    assert mock_write_fill.call_count == 1
 
-    expected_subdirs = [
-        "short_term",
-        "medium_term",
-        "long_term",
-        "short_term",
-        "medium_term",
-        "long_term",
-        None, 
+    expected_subdirs_helper = [
+        "short_term", "medium_term", "long_term",
+        "short_term", "medium_term", "long_term"
     ]
-    actual_subdirs = [kwargs.get("subdir") for _, kwargs in mock_write_bronze.call_args_list]
-    assert actual_subdirs == expected_subdirs
+    actual_subdirs_helper = [kwargs.get("subdir") for _, kwargs in mock_write_helper.call_args_list]
+    assert actual_subdirs_helper == expected_subdirs_helper
+
+    actual_subdir_fill = mock_write_fill.call_args.kwargs.get("subdir")
+    assert actual_subdir_fill is None
 
     for tr in ["short_term", "medium_term", "long_term"]:
         mock_get_top_tracks.assert_any_call("token_top", limit=10, time_range=tr)
