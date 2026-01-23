@@ -21,8 +21,8 @@ def fill_silver_recent_tracks():
     df = transform_silver_recent_tracks(df)
     
     df["played_at"] = pd.to_datetime(df["played_at"])
-    df["year"] = df["played_at"].dt.year
-    df["month"] = df["played_at"].dt.month
+    df["year"] = df["played_at"].dt.year.astype(int)
+    df["month"] = df["played_at"].dt.month.astype(int)
 
     for (year, month), group in df.groupby(["year", "month"]):
         month_dir = silver_dir / str(year)
