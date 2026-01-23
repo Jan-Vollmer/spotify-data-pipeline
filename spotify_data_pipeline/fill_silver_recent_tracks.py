@@ -3,7 +3,7 @@ import pandas as pd
 
 from spotify_data_pipeline.helpers.dir_helper import prepare_dirs
 from spotify_data_pipeline.helpers.file_utils import move_to_archive, list_json_files
-from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, append_to_parquet
+from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, append_to_parquet, transform_silver_recent_tracks
 
 def fill_silver_recent_tracks():
     bronze_dir, archive_dir, silver_dir = prepare_dirs("recent_tracks", "recent_tracks")
@@ -18,6 +18,8 @@ def fill_silver_recent_tracks():
         print("Keine Items in den JSON-Dateien.")
         return
 
+    df = transform_silver_recent_tracks(df)
+    
     df["played_at"] = pd.to_datetime(df["played_at"])
     df["year"] = df["played_at"].dt.year
     df["month"] = df["played_at"].dt.month

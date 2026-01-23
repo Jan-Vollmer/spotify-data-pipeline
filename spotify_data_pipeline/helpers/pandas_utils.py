@@ -2,6 +2,14 @@ import json
 from pathlib import Path
 import pandas as pd
 
+DROP_PATTERNS = [
+    "available_markets",
+    ".images",
+    "external_urls",
+    "href",
+    "preview_url"
+]
+
 def load_jsons_to_df(json_files):
     all_items = []
     for file_path in json_files:
@@ -26,3 +34,11 @@ def append_to_parquet(df, parquet_path, subset="played_at"):
         combined = df
     combined.to_parquet(parquet_path, index=False)
     return combined
+
+def transform_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
+    cols_to_drop = [
+        col for col in df.columns
+        if any(pattern in col for pattern in DROP_PATTERNS)
+    ]
+
+    return df.drop(columns=cols_to_drop, errors="ignore")

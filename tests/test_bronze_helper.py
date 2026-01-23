@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 import pytest
-from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch
+from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch, fetch_and_write
+from unittest.mock import MagicMock
 
 def test_write_bronze_batch_creates_file_and_writes_json(tmp_path: Path):
     entity = "customer"
@@ -63,3 +64,14 @@ def test_write_bronze_batch_creates_directories(tmp_path: Path):
     dir_path = tmp_path / entity / subdir
     assert dir_path.exists()
     assert dir_path.is_dir()
+
+def test_fetch_and_write_calls_write_bronze_batch(monkeypatch):
+    mock_write = MagicMock()
+    monkeypatch.setattr("spotify_data_pipeline.helpers.bronze_helper.write_bronze_batch", mock_write)
+
+    mock_getter = MagicMock(return_value=[{"id": 1}])
+    fetch_and_write("top_tracks", mock_getter, "token", "2026-01-23", limit=5)
+
+    assert mock_getter.call_count == 3  # short, medium, long
+    assert mock_write.call_count == 3
+    assert mock_write.call_args_list[0][1]["subdir"] == "short_term"    

@@ -33,31 +33,34 @@ def test_fill_bronze_happy_path(
     mock_get_top_artists.return_value = TOP_ARTISTS
     mock_get_recent_tracks.return_value = RECENT_TRACKS
 
-    result = fb.fill_bronze(limit_top=10, limit_recent=5, time_range="short_term")
+    downloaded_at = fb.fill_bronze(limit_top=10, limit_recent=5)
 
-    assert result == (TOP_TRACKS, TOP_ARTISTS, RECENT_TRACKS)
+    assert mock_write_bronze.call_count == 1
 
-    mock_get_token.assert_any_call("user-top-read")
-    mock_get_token.assert_any_call("user-read-recently-played")
+    expected_subdirs = [
+        "short_term",
+        "medium_term",
+        "long_term",
+        "short_term",
+        "medium_term",
+        "long_term",
+        None, 
+    ]
+    actual_subdirs = [kwargs.get("subdir") for _, kwargs in mock_write_bronze.call_args_list]
+    assert actual_subdirs == expected_subdirs
 
-    mock_get_top_tracks.assert_called_once_with(
-        "token_top", limit=10, time_range="short_term"
-    )
-    mock_get_top_artists.assert_called_once_with(
-        "token_top", limit=10, time_range="short_term"
-    )
-    mock_get_recent_tracks.assert_called_once_with(
-        "token_recent", limit=5
-    )
+    for tr in ["short_term", "medium_term", "long_term"]:
+        mock_get_top_tracks.assert_any_call("token_top", limit=10, time_range=tr)
+        mock_get_top_artists.assert_any_call("token_top", limit=10, time_range=tr)
 
-    assert mock_write_bronze.call_count == 3
+    mock_get_recent_tracks.assert_called_once_with("token_recent", limit=5)
 
 @patch("spotify_data_pipeline.fill_bronze.write_bronze_batch")
 @patch("spotify_data_pipeline.fill_bronze.get_recent_tracks", return_value=RECENT_TRACKS)
 @patch("spotify_data_pipeline.fill_bronze.get_top_artists", return_value=TOP_ARTISTS)
 @patch("spotify_data_pipeline.fill_bronze.get_top_tracks", return_value=TOP_TRACKS)
 @patch("spotify_data_pipeline.fill_bronze.get_or_refresh_token", return_value="token")
-def test_fill_bronze_default_time_range(
+def test_fill_bronze_token_and_subdir_defaults(
     mock_token,
     mock_tracks,
     mock_artists,
@@ -66,6 +69,6 @@ def test_fill_bronze_default_time_range(
 ):
     fb.fill_bronze()
 
-    _, kwargs = mock_write.call_args_list[0]
-
-    assert kwargs["subdir"] == "time_range=default"
+    _, kwargs = mock_write.call_args_list[-1]
+    subdir = kwargs.get("subdir")
+    assert subdir is None
