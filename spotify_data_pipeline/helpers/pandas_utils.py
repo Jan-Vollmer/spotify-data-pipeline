@@ -5,9 +5,13 @@ import pandas as pd
 DROP_PATTERNS = [
     "available_markets",
     ".images",
+    "images",
     "external_urls",
     "href",
-    "preview_url"
+    "preview_url",
+    "uri",
+    "type",
+    ".followers"
 ]
 
 def load_jsons_to_df(json_files):
@@ -35,7 +39,7 @@ def append_to_parquet(df, parquet_path, subset="played_at"):
     combined.to_parquet(parquet_path, index=False)
     return combined
 
-def transform_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
+def transform_silver(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_drop = [
         col for col in df.columns
         if any(pattern in col for pattern in DROP_PATTERNS)

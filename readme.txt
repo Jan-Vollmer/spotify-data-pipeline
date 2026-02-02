@@ -13,6 +13,8 @@ Local data pipeline for collecting, structuring, and enabling analysis of person
   - cloud infrastructure would add unnecessary complexity
   - operational overhead outweighs current benefits
 
+MVP Approach: The pipeline is developed stepwise. Currently, only Top Artists are fully implemented, enabling a complete end-to-end flow from raw ingestion (Bronze) to cleaned storage (Silver). The Analytics Enablement will in the beginning only be availible for this endpoint. Top tracks and further progression for recent tracks will follow in later iterations.
+
 ## Target State
 
 ### Ingestion
