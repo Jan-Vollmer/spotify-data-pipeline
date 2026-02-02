@@ -25,4 +25,5 @@ __pycache__/
 # CSV oder Daten
 *.csv
 *.json
+*.parquet
 refresh_token*.txt
