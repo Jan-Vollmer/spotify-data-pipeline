@@ -1,5 +1,3 @@
-import pandas as pd
-from pathlib import Path
 from spotify_data_pipeline.helpers.artist_helper import process_silver_artists
 
 def fill_silver_top_artists():
