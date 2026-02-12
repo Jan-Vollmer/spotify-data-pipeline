@@ -1,6 +1,6 @@
-from .fill_bronze import fill_bronze
-from .fill_silver import fill_silver
-from .fill_gold import fill_gold
+from .Bronze.fill_bronze import fill_bronze
+from .Silver.fill_silver import fill_silver
+from .Gold.fill_gold import fill_gold
 
 
 def main():

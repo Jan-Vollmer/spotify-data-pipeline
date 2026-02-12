@@ -1,5 +1,5 @@
 import pytest
-from spotify_data_pipeline.get_top_artists import get_top_artists
+from spotify_data_pipeline.Bronze.get_top_artists import get_top_artists
 
 class MockResponse:
     def __init__(self, json_data, status_code=200):
@@ -10,7 +10,7 @@ class MockResponse:
         return self._json_data
 
 def test_get_top_artists(mocker):
-    mock_get = mocker.patch("spotify_data_pipeline.get_top_artists.requests.get")
+    mock_get = mocker.patch("spotify_data_pipeline.Bronze.get_top_artists.requests.get")
     
     mock_get.return_value = MockResponse({
         "items": [{"artist": {"name": "Artist1"}}, {"artist": {"name": "artist2"}}]

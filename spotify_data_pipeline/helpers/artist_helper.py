@@ -2,7 +2,7 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 from spotify_data_pipeline.helpers.file_utils import move_to_archive, list_json_files, extract_date_from_filename
-from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, append_to_parquet, transform_silver
+from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, transform_silver
 
 def extract_timestamp(file_path):
     ts_str = file_path.stem.split("_")[-1]

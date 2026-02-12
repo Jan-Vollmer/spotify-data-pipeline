@@ -1,7 +1,7 @@
 import pytest
-import spotify_data_pipeline.auth as auth
+import spotify_data_pipeline.Bronze.auth as auth
 
-from spotify_data_pipeline.auth import (
+from spotify_data_pipeline.Bronze.auth import (
     get_refresh_token_file,
     get_auth_url,
     save_refresh_token,
@@ -56,7 +56,7 @@ def test_request_token_with_code(mocker):
     }
 
     mocker.patch(
-        "spotify_data_pipeline.auth.requests.post",
+        "spotify_data_pipeline.Bronze.auth.requests.post",
         return_value=MockResponse(fake_response)
     )
 
@@ -67,7 +67,7 @@ def test_request_token_with_code(mocker):
 
 def test_refresh_access_token(mocker):
     mocker.patch(
-        "spotify_data_pipeline.auth.requests.post",
+        "spotify_data_pipeline.Bronze.auth.requests.post",
         return_value=MockResponse({"access_token": "new-token"})
     )
 
@@ -76,24 +76,24 @@ def test_refresh_access_token(mocker):
     assert token == "new-token"
 
 def test_get_or_refresh_token_uses_refresh_token(mocker):
-    mocker.patch("spotify_data_pipeline.auth.load_refresh_token", return_value="refresh123")
-    mocker.patch("spotify_data_pipeline.auth.refresh_access_token", return_value="access123")
+    mocker.patch("spotify_data_pipeline.Bronze.auth.load_refresh_token", return_value="refresh123")
+    mocker.patch("spotify_data_pipeline.Bronze.auth.refresh_access_token", return_value="access123")
 
     token = get_or_refresh_token("scope")
 
     assert token == "access123"
 
 def test_get_or_refresh_token_full_flow(mocker):
-    mocker.patch("spotify_data_pipeline.auth.load_refresh_token", return_value=None)
-    mocker.patch("spotify_data_pipeline.auth.get_code_via_local_server", return_value="code123")
+    mocker.patch("spotify_data_pipeline.Bronze.auth.load_refresh_token", return_value=None)
+    mocker.patch("spotify_data_pipeline.Bronze.auth.get_code_via_local_server", return_value="code123")
     mocker.patch(
-        "spotify_data_pipeline.auth.request_token_with_code",
+        "spotify_data_pipeline.Bronze.auth.request_token_with_code",
         return_value={
             "access_token": "access123",
             "refresh_token": "refresh123"
         }
     )
-    mocker.patch("spotify_data_pipeline.auth.save_refresh_token")
+    mocker.patch("spotify_data_pipeline.Bronze.auth.save_refresh_token")
 
     token = get_or_refresh_token("scope")
 

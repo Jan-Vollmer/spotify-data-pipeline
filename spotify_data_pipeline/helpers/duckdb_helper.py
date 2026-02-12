@@ -1,6 +1,5 @@
 import duckdb
 import pandas as pd
-from pathlib import Path
 
 class DuckDBHelper:
     def __init__(self, scope: str):

@@ -6,7 +6,7 @@ from .auth import get_or_refresh_token
 from .get_top_tracks import get_top_tracks
 from .get_top_artists import get_top_artists
 from .get_recent_tracks import get_recent_tracks
-from .helpers.bronze_helper import write_bronze_batch, fetch_and_write
+from ..helpers.bronze_helper import write_bronze_batch, fetch_and_write
 
 def fill_bronze(limit_top: int = None, limit_recent: int = None):
     
