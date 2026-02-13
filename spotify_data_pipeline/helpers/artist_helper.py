@@ -2,7 +2,7 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 from spotify_data_pipeline.helpers.file_utils import move_to_archive, list_json_files, extract_date_from_filename
-from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, transform_silver
+from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, transform_silver_artist
 
 def extract_timestamp(file_path):
     ts_str = file_path.stem.split("_")[-1]
@@ -34,7 +34,7 @@ def process_silver_artists(time_range : str):
         df = load_jsons_to_df([file])
         snapshot_date = extract_date_from_filename(file)
         df["snapshot_date"] = snapshot_date
-        df = transform_silver(df)
+        df = transform_silver_artist(df)
 
         df["position"] = range(1, len(df) + 1)
         snapshot_str = snapshot_date.strftime("%Y-%m-%dT%H-%M-%S")

@@ -39,10 +39,69 @@ def append_to_parquet(df, parquet_path, subset="played_at"):
     combined.to_parquet(parquet_path, index=False)
     return combined
 
-def transform_silver(df: pd.DataFrame) -> pd.DataFrame:
+def transform_silver_artist(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_drop = [
         col for col in df.columns
         if any(pattern in col for pattern in DROP_PATTERNS)
     ]
 
     return df.drop(columns=cols_to_drop, errors="ignore")
+
+def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.rename(columns={
+    "track.artists": "artists",
+    "track.album.artists": "album.artists",
+    "track.id": "id",
+    "track.name": "name",
+    "track.album.id": "album.id",
+    "track.album.name": "album.name",
+    "track.album.release_date": "album.release_date",
+    "track.album.total_tracks": "album.total_tracks"
+    })  
+    df["artist_ids"] = df["artists"].apply(
+        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["artist_names"] = df["artists"].apply(
+        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["artist_types"] = df["artists"].apply(
+        lambda xs: [a["type"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["album_artist_ids"] = df["album.artists"].apply(
+        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["album_artist_names"] = df["album.artists"].apply(
+        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    )
+
+    album_cols = {
+        "album.id": "album_id",
+        "album.name": "album_name",
+        "album.release_date": "album_release_date",
+        "album.total_tracks": "album_total_tracks",
+    }
+
+    df = df.rename(columns=album_cols)
+
+    DROP_COLS = [
+        "artists",
+        "external_urls",
+        "href",
+        "uri",
+        "type",
+        "images",
+        "available_markets",
+        "preview_url",
+        "album.images",
+        "album.uri",
+        "album.artists",
+        "album.available_markets",
+        "album.external_urls.spotify",
+        "album.href",
+        "external_urls.spotify"
+    ]
+
+    df = df.drop(columns=[c for c in DROP_COLS if c in df.columns],
+                 errors="ignore")
+
+    return df
