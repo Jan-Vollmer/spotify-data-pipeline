@@ -82,11 +82,17 @@ def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]
 
     return cleaned    
 
-def build_gold_tracks(scope: str):
+def build_gold_top_tracks():
     silvers = {
-        TERM_KEYS[t]: load_silver(scope, t)
+        TERM_KEYS[t]: load_silver("top_tracks", t)
         for t in TERMS
     }
     silvers = clean_silver_tracks(silvers)
-    df_all = unify_silver(silvers, scope=scope)
-    write_gold(df_all, scope)
+    df_all = unify_silver(silvers, scope="top_tracks")
+    write_gold(df_all, "top_tracks")
+
+def build_gold_recent_tracks():
+    silvers = load_silver("recent_tracks", t)
+    silvers = clean_silver_tracks(silvers)
+    df_all = unify_silver(silvers, scope="recent_tracks")
+    write_gold(df_all, "recent_tracks")    

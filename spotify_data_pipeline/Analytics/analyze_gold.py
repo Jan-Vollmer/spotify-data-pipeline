@@ -7,9 +7,9 @@ def main():
     print("Top 10 Artists je Term:")
     print(df_top10)
     
-    artist_id = "57ekbx9PSS4ORs5wTZMSYp"
-    df_history = db.top_scope_over_time(artist_id)
-    print(f"Verlauf von Artist {artist_id}:")
+    artist_name = "Lacrimosa"
+    df_history = db.top_scope_over_time(artist_name)
+    print(f"Verlauf von Artist {artist_name}:")
     print(df_history)
 
 if __name__ == "__main__":

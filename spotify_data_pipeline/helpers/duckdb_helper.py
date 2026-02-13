@@ -1,32 +1,20 @@
 import duckdb
-import pandas as pd
+from pathlib import Path
 
 class DuckDBHelper:
-    def __init__(self, scope: str):
-        self.con = duckdb.connect()
-        self.scope = scope
-        gold_path = f"data/gold/{self.scope}/*.parquet"
-        self.con.execute(f"CREATE VIEW top_{self.scope} AS SELECT * FROM read_parquet('{gold_path}')")
+    def __init__(self, db_path: str = "data/warehouse.duckdb"):
+        Path("data").mkdir(exist_ok=True)
+        self.con = duckdb.connect(db_path)
 
-    def query(self, sql: str) -> pd.DataFrame:
+    def run_sql_file(self, path: str):
+        with open(path) as f:
+            self.con.execute(f.read())
+
+    def create_parquet_view(self, view_name: str, parquet_glob: str):
+        self.con.execute(f"""
+            CREATE OR REPLACE VIEW {view_name} AS
+            SELECT * FROM read_parquet('{parquet_glob}')
+        """)
+
+    def query(self, sql: str):
         return self.con.execute(sql).df()
-
-    def top_n_by_term(self, n: int = 10) -> pd.DataFrame:
-        sql = f"""
-            SELECT id, name, position, term
-            FROM top_{self.scope}
-            WHERE position <= {n} AND
-            snapshot_date = (SELECT MAX(snapshot_date) FROM top_top_artists)
-            ORDER BY term, position
-        """
-        return self.query(sql)
-    
-    def top_scope_over_time(self, id: str) -> pd.DataFrame:
-        sql = f"""
-            SELECT id, name, position, term
-            FROM top_{self.scope}
-            WHERE id = '{id}' AND
-            snapshot_date = (SELECT MAX(snapshot_date) FROM top_top_artists)
-            ORDER BY snapshot_date
-        """
-        return self.query(sql)

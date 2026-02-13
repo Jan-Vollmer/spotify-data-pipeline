@@ -105,3 +105,52 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
                  errors="ignore")
 
     return df
+
+def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
+    df["artist_ids"] = df["artists"].apply(
+        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["artist_names"] = df["artists"].apply(
+        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["artist_types"] = df["artists"].apply(
+        lambda xs: [a["type"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["album_artist_ids"] = df["album.artists"].apply(
+        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    )
+    df["album_artist_names"] = df["album.artists"].apply(
+        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    )
+    DROP_COLS = [
+        "external_urls",
+        "href",
+        "uri",
+        "type",
+        "images",
+        "available_markets",
+        "preview_url",
+        "track.album.images",
+        "track.album.artists",
+        "track.album.available_markets",
+        "track.album.external_urls.spotify",
+        "track.album.href",
+        "track.album.uri",
+        "track.external_urls.spotify",
+        "track.available_markets",
+        "track.external_urls.spotify",
+        "track.href",
+        "track.preview_url",
+        "track.uri",
+        "context.external_urls.spotify",
+        "context.href"
+    ]
+
+    df = df.drop(columns=[c for c in DROP_COLS if c in df.columns],
+                 errors="ignore")
+
+    # Deduplizieren nach artist + played_at
+    if "played_at" in df.columns:
+        df = df.drop_duplicates(subset=["artist_ids", "played_at"])
+
+    return df
