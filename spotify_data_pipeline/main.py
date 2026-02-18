@@ -4,7 +4,7 @@ from .Gold.fill_gold import fill_gold
 
 
 def main():
-    downloaded_at = fill_bronze(limit_top=20, limit_recent=50)
+    fill_bronze(limit_top=20, limit_recent=50)
     fill_silver()
     fill_gold()
 

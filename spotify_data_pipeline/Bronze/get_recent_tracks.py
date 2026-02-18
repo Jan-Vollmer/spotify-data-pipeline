@@ -1,6 +1,4 @@
-import requests
-import time
-from spotify_data_pipeline.Bronze.error_handler import handle_http_error
+from spotify_data_pipeline.Bronze.error_handler import handle_http_error, request_with_retry
 
 def get_recent_tracks(access_token: str, limit: int = None, after: int = None) -> list:
 
@@ -14,7 +12,6 @@ def get_recent_tracks(access_token: str, limit: int = None, after: int = None) -
         params["after"] = after  # in ms
 
     url = "https://api.spotify.com/v1/me/player/recently-played"
-    resp = requests.get(url, headers=headers, params=params)
-    handle_http_error(resp)
+    resp = request_with_retry(url, headers=headers, params=params)
 
     return resp.json().get("items", [])

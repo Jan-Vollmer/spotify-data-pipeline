@@ -56,6 +56,8 @@ def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]
         if df.empty:
             cleaned[key] = df
             continue
+        df = clean_track_names(df)
+        df = clean_track_sequence(df)
         df["artists_combined"] = df.apply(
             lambda row: [
                 {"id": i, "name": n, "type": t}
@@ -82,6 +84,17 @@ def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]
 
     return cleaned    
 
+def clean_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
+    df = clean_track_names(df)
+    df = clean_track_sequence(df)
+
+    df = df.drop_duplicates(
+        subset=["id", "played_at"],
+        keep="first"
+    )
+    
+    return df    
+
 def build_gold_top_tracks():
     silvers = {
         TERM_KEYS[t]: load_silver("top_tracks", t)
@@ -91,8 +104,49 @@ def build_gold_top_tracks():
     df_all = unify_silver(silvers, scope="top_tracks")
     write_gold(df_all, "top_tracks")
 
-def build_gold_recent_tracks():
-    silvers = load_silver("recent_tracks", t)
-    silvers = clean_silver_tracks(silvers)
-    df_all = unify_silver(silvers, scope="recent_tracks")
-    write_gold(df_all, "recent_tracks")    
+def build_gold_recent_tracks(year: str = "full"):
+    silver_dir = Path("data/silver/recent_tracks/")
+    if not silver_dir.exists():
+        raise FileNotFoundError(silver_dir)
+    
+    if year == "full":
+        files = list(silver_dir.rglob("*.parquet"))
+    else:
+        dir = silver_dir / year
+        if not dir.exists():
+            raise FileNotFoundError(dir)
+        files = list(dir.glob("*.parquet"))
+
+    if not files:
+        raise FileNotFoundError(silver_dir)
+    
+    dfs = [pd.read_parquet(f) for f in files]
+    df_all = pd.concat(dfs, ignore_index=True)
+    df_all = clean_silver_recent_tracks(df_all)
+    write_gold(df_all, "recent_tracks")
+
+def clean_track_sequence(df: pd.DataFrame) -> pd.DataFrame:
+    desired_order = [
+        "player_at"
+    ]
+    front = [c for c in desired_order if c in df.columns]
+    rest = [c for c in df.columns if c not in front]
+    return df[front + rest]
+
+def clean_track_names(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.rename(columns={
+        "album.id" : "album_id",
+        "album.name" : "album_name",
+        "album.release_date" : "release_date",
+        "album.total_tracks" : "total_tracks",
+        "track.album.type" : "album_type",
+        "track.disc_number" : "disc_number",
+        "track.duration_ms" : "duration_ms",
+        "track.explicit" : "explicit",
+        "track.popularity" : "popularity",
+        "track.track_number" : "track_number",
+        "track.type" : "track_type",
+        "context.type" : "context_type",
+        "album.album_type" :  "album_type"
+    })
+    return df     

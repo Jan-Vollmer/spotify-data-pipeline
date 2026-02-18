@@ -3,8 +3,12 @@ from pathlib import Path
 
 class DuckDBHelper:
     def __init__(self, db_path: str = "data/warehouse.duckdb"):
+        import os
+        key = os.getenv("DUCKDB_KEY")
         Path("data").mkdir(exist_ok=True)
-        self.con = duckdb.connect(db_path)
+        self.con = duckdb.connect(db_path,
+                                  config={"encryption_key": key} if key else {}
+                                  )
 
     def run_sql_file(self, path: str):
         with open(path) as f:

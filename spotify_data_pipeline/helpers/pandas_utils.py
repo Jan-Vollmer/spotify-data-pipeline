@@ -98,7 +98,13 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
         "album.available_markets",
         "album.external_urls.spotify",
         "album.href",
-        "external_urls.spotify"
+        "external_urls.spotify",
+        "album.is_playable", 
+        "album.release_date_precision", 
+        "external_ids.isrc", 
+        "track.album.release_date_precision", 
+        "track.is_local", 
+        "is_local"
     ]
 
     df = df.drop(columns=[c for c in DROP_COLS if c in df.columns],
@@ -107,9 +113,19 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.rename(columns={
+    "track.artists": "artists",
+    "track.album.artists": "album.artists",
+    "track.id": "id",
+    "track.name": "name",
+    "track.album.id": "album.id",
+    "track.album.name": "album.name",
+    "track.album.release_date": "album.release_date",
+    "track.album.total_tracks": "album.total_tracks"
+    })  
     df["artist_ids"] = df["artists"].apply(
-        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
-    )
+        lambda xs: tuple(a["id"] for a in xs) if isinstance(xs, list) else None
+        ) 
     df["artist_names"] = df["artists"].apply(
         lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
     )
@@ -143,13 +159,23 @@ def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
         "track.preview_url",
         "track.uri",
         "context.external_urls.spotify",
-        "context.href"
+        "context.href",
+        "artists",
+        "album.artists",
+        "track.album.album_type",
+        "track.external_ids.isrc",
+        "context.uri",
+        "album.is_playable", 
+        "album.release_date_precision", 
+        "external_ids.isrc", 
+        "track.album.release_date_precision",
+        "track.is_local", 
+        "is_local"
     ]
 
     df = df.drop(columns=[c for c in DROP_COLS if c in df.columns],
                  errors="ignore")
 
-    # Deduplizieren nach artist + played_at
     if "played_at" in df.columns:
         df = df.drop_duplicates(subset=["artist_ids", "played_at"])
 

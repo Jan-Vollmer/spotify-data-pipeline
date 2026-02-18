@@ -27,3 +27,4 @@ __pycache__/
 *.json
 *.parquet
 refresh_token*.txt
+*.duckdb

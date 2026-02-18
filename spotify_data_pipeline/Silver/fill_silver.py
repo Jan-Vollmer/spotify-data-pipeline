@@ -3,11 +3,9 @@ from spotify_data_pipeline.Silver.fill_silver_top_tracks import fill_silver_top_
 from spotify_data_pipeline.Silver.fill_silver_top_artists import fill_silver_top_artists
 
 def fill_silver():
-    # Recent Tracks
     fill_silver_recent_tracks()
-
-    # Top Artists
     fill_silver_top_artists()
-    
-    # Top Tracks
     fill_silver_top_tracks()
+
+if __name__ == "__main__":
+    fill_silver()    

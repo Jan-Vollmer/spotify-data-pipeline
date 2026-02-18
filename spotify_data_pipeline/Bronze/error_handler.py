@@ -1,5 +1,6 @@
 import logging
 from requests import Response
+from auth import refresh_token
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,8 +17,14 @@ class SpotifyAPIError(Exception):
         self.details = details
         super().__init__(f"{status_code}: {message} | {details}")
 
+class RetryableError(Exception):
+    def __init__(self, wait=None):
+        self.wait = wait
 
-def handle_http_error(response: Response):
+class AuthError(Exception):
+    pass
+
+def handle_http_error(response: Response, max_retries=3):
     if 200 <= response.status_code < 300:
         return
 
@@ -31,16 +38,41 @@ def handle_http_error(response: Response):
     status = response.status_code
 
     if status == 401:
-        raise SpotifyAPIError(status, "Unauthorized (token expired?)", error_json)
-
+        raise AuthError()
+    
     if status == 403:
         raise SpotifyAPIError(status, "Forbidden (insufficient permissions)", error_json)
 
     if status == 429:
-        retry_after = response.headers.get("Retry-After", "unknown")
-        raise SpotifyAPIError(status, f"Rate limited, retry after: {retry_after}s", error_json)
+        wait = int(response.headers.get("Retry-After", 1))
+        raise RetryableError(wait=wait)
 
     if 500 <= status <= 599:
-        raise SpotifyAPIError(status, "Spotify server error. Try again later.", error_json)
+        raise RetryableError()
 
     raise SpotifyAPIError(status, message, error_json)
+
+def request_with_retry(url, headers=None, params=None, max_retries=3):
+    from time import sleep
+    import requests
+
+    for attempt in range(max_retries + 1):
+        try:
+            resp = requests.get(url, headers=headers, params=params)
+            handle_http_error(resp)
+            return resp
+
+        except RetryableError as e:
+            sleep(e.wait or backoff(attempt))
+
+        except AuthError:
+            refresh_token()
+            continue
+
+        except SpotifyAPIError:
+            raise    
+    raise RuntimeError("Unreachable")
+
+def backoff(attempt):
+    import random
+    return min((2 ** attempt) + random.uniform(0, 1), 30)        

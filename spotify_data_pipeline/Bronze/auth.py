@@ -3,13 +3,14 @@ import requests
 from dotenv import load_dotenv
 from urllib.parse import urlencode, urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import time
 import threading
 
 load_dotenv()
 
 CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")  # z.B. http://127.0.0.1:8000/callback
+REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TOKEN_DIR = os.path.join(BASE_DIR, "tokens")
@@ -85,7 +86,7 @@ def get_code_via_local_server(scope: str) -> str:
             
 
         def log_message(self, format, *args):
-            return  # keine Logs auf Konsole
+            return
 
     parsed_redirect = urlparse(REDIRECT_URI)
     host = parsed_redirect.hostname
@@ -100,7 +101,7 @@ def get_code_via_local_server(scope: str) -> str:
     print(get_auth_url(scope))
 
     while not hasattr(server, "code") or server.code is None:
-        pass
+        time.sleep(0.1)
 
     code = server.code
     server.shutdown()

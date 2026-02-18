@@ -1,5 +1,4 @@
-import requests
-from spotify_data_pipeline.Bronze.error_handler import handle_http_error
+from spotify_data_pipeline.Bronze.error_handler import handle_http_error, request_with_retry
 
 def get_top_tracks(access_token: str, limit: int = None, time_range: str = None) -> list:
 
@@ -14,7 +13,6 @@ def get_top_tracks(access_token: str, limit: int = None, time_range: str = None)
     }
 
     url = "https://api.spotify.com/v1/me/top/tracks"
-    resp = requests.get(url, headers=headers, params=params)
-    handle_http_error(resp)
+    resp = request_with_retry(url, headers=headers, params=params)
     
     return resp.json().get("items", [])

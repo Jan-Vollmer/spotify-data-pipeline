@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+import logging
 
 from spotify_data_pipeline.helpers.dir_helper import prepare_dirs
 from spotify_data_pipeline.helpers.file_utils import move_to_archive, list_json_files
@@ -10,12 +11,12 @@ def fill_silver_recent_tracks():
 
     json_files = list_json_files(bronze_dir)
     if not json_files:
-        print("Keine neuen JSON-Dateien gefunden.")
+        logging.info("No new JSON-Data found.")
         return
 
     df = load_jsons_to_df(json_files)
     if df.empty:
-        print("Keine Items in den JSON-Dateien.")
+        logging.info("No Items in JSON-Files.")
         return
 
     df = transform_silver_recent_track(df)
@@ -30,9 +31,9 @@ def fill_silver_recent_tracks():
         parquet_path = month_dir / f"{month:02d}.parquet"
 
         combined = append_to_parquet(group, parquet_path, subset="played_at")
-        print(f"{len(combined)} Zeilen gespeichert in {parquet_path}")
+        logging.info(f"{len(combined)} rows saved in {parquet_path}")
 
     for file_path in json_files:
         move_to_archive(file_path, archive_dir)
 
-    print(f"{len(json_files)} Dateien nach archive verschoben.")
+    logging.info(f"{len(json_files)} Files move to archive.")
