@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 from pathlib import Path
 from datetime import date
 
@@ -12,8 +13,12 @@ def load_silver(scope: str, time_range: str):
         raise FileNotFoundError(silver_dir)
 
     files = list(silver_dir.glob("*.parquet"))
+    logging.info(f"{len(files)} files in {silver_dir}")
     if not files:
         return pd.DataFrame()
+    
+    if len(files) > 100:
+        logging.warning(f"Loading {len(files)} parquet files into memory")
 
     dfs = [pd.read_parquet(f) for f in files]
     return pd.concat(dfs, ignore_index=True)
@@ -37,9 +42,9 @@ def write_gold(df: pd.DataFrame, scope: str):
     gold_dir = Path("data/gold") / scope
     gold_dir.mkdir(parents=True, exist_ok=True)
     snapshot_date = date.today()
-
     file_path = gold_dir / f"{scope}_{snapshot_date}.parquet"
     df.to_parquet(file_path, index=False)
+    logging.info(f"{len(df)} rows written to gold for scope {scope}")
 
 def build_gold_artist():
     silvers = {
@@ -47,7 +52,8 @@ def build_gold_artist():
         for t in TERMS
     }
     df_all = unify_silver(silvers, scope="top_artists")
-    write_gold(df_all, "top_artists")    
+    write_gold(df_all, "top_artists")
+    logging.info(f"{len(df_all)} artists files written to gold")    
 
 def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     cleaned = {}
@@ -103,6 +109,7 @@ def build_gold_top_tracks():
     silvers = clean_silver_tracks(silvers)
     df_all = unify_silver(silvers, scope="top_tracks")
     write_gold(df_all, "top_tracks")
+    logging.info(f"{len(df_all)} top_tracks rows written to gold")   
 
 def build_gold_recent_tracks(year: str = "full"):
     silver_dir = Path("data/silver/recent_tracks/")
@@ -124,6 +131,8 @@ def build_gold_recent_tracks(year: str = "full"):
     df_all = pd.concat(dfs, ignore_index=True)
     df_all = clean_silver_recent_tracks(df_all)
     write_gold(df_all, "recent_tracks")
+    logging.info(f"{len(df_all)} recent_tracks rows written to gold")   
+
 
 def clean_track_sequence(df: pd.DataFrame) -> pd.DataFrame:
     desired_order = [

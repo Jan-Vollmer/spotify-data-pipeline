@@ -1,6 +1,6 @@
 import logging
 from requests import Response
-from auth import refresh_token
+from .auth import refresh_access_token
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -66,7 +66,7 @@ def request_with_retry(url, headers=None, params=None, max_retries=3):
             sleep(e.wait or backoff(attempt))
 
         except AuthError:
-            refresh_token()
+            refresh_access_token()
             continue
 
         except SpotifyAPIError:
