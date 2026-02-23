@@ -5,24 +5,6 @@ import logging
 from spotify_data_pipeline.helpers.file_utils import move_to_archive, list_json_files, extract_date_from_filename
 from spotify_data_pipeline.helpers.pandas_utils import load_jsons_to_df, transform_silver_artist
 
-def extract_timestamp(file_path):
-    ts_str = file_path.stem.split("_")[-1]
-    return datetime.strptime(ts_str, "%Y%m%d")
-
-def enrich_json(df: pd.DataFrame, json_files: list[Path]) -> pd.DataFrame:
-    enriched_list = []
-
-    for file_path in json_files:
-        ts = extract_timestamp(file_path)
-        df_file = load_jsons_to_df([file_path])
-        df_file = transform_silver_artist(df_file)
-        df_file = df_file.copy()
-        df_file["position"] = range(1, len(df_file) + 1)
-        df_file["timestamp"] = ts
-        enriched_list.append(df_file)
-
-    return pd.concat(enriched_list, ignore_index=True)
-
 def process_silver_artists(time_range : str):
     logging.info(f"Processing silver artists for time range '{time_range}'")
     bronze_dir = Path("data/bronze/top_artists") / time_range
