@@ -1,4 +1,4 @@
-from spotify_data_pipeline.Bronze.error_handler import handle_http_error, request_with_retry
+from spotify_data_pipeline.Bronze.error_handler import request_with_retry
 
 def get_recent_tracks(access_token: str, limit: int = None, after: int = None) -> list:
 

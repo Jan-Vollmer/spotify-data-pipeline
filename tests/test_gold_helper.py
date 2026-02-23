@@ -1,7 +1,6 @@
 import pandas as pd
 from unittest.mock import patch
 import pytest
-from pathlib import Path
 from datetime import date
 from spotify_data_pipeline.helpers.gold_helper import load_silver, unify_silver, write_gold
 
