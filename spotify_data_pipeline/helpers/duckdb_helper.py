@@ -1,19 +1,11 @@
 import duckdb
-from dotenv import load_dotenv
-import os
 from pathlib import Path
-
-load_dotenv()
-key = os.getenv("DUCKDB_KEY")
 
 class DuckDBHelper:
     def __init__(self, db_path: str = "data/warehouse.duckdb"):
         Path("data").mkdir(exist_ok=True)
-        if not key:
-            raise RuntimeError("DUCKDB_KEY not set in environment")
-        self.con = duckdb.connect(db_path,
-                                  config={"encryption_key": key} if key else {}
-                                  )
+        self.con = duckdb.connect(db_path)
+
 
     def run_sql_file(self, path: str):
         with open(path) as f:
