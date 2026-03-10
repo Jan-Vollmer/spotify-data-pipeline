@@ -49,39 +49,31 @@ def transform_silver_artist(df: pd.DataFrame) -> pd.DataFrame:
 
 def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={
-    "track.artists": "artists",
-    "track.album.artists": "album.artists",
-    "track.id": "id",
-    "track.name": "name",
-    "track.album.id": "album.id",
-    "track.album.name": "album.name",
-    "track.album.release_date": "album.release_date",
-    "track.album.total_tracks": "album.total_tracks"
-    })  
+    "artists": "artists",
+    "album.artists": "album_artists",
+    "id": "track_id",
+    "name": "track_name",
+    "album.id": "album_id",
+    "album.name": "album_name",
+    "album.release_date": "album_release_date",
+    "album.total_tracks": "album_total_tracks"
+    }) 
+
     df["artist_ids"] = df["artists"].apply(
-        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+        lambda xs: tuple(a["id"] for a in xs) if isinstance(xs, list) else None
     )
     df["artist_names"] = df["artists"].apply(
-        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    lambda xs: tuple(a["name"] for a in xs) if isinstance(xs, list) else None
     )
     df["artist_types"] = df["artists"].apply(
-        lambda xs: [a["type"] for a in xs] if isinstance(xs, list) else None
+    lambda xs: tuple(a["type"] for a in xs) if isinstance(xs, list) else None
     )
-    df["album_artist_ids"] = df["album.artists"].apply(
-        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    df["album_artist_ids"] = df["album_artists"].apply(
+    lambda xs: tuple(a["id"] for a in xs) if isinstance(xs, list) else None
     )
-    df["album_artist_names"] = df["album.artists"].apply(
-        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    df["album_artist_names"] = df["album_artists"].apply(
+    lambda xs: tuple(a["name"] for a in xs) if isinstance(xs, list) else None
     )
-
-    album_cols = {
-        "album.id": "album_id",
-        "album.name": "album_name",
-        "album.release_date": "album_release_date",
-        "album.total_tracks": "album_total_tracks",
-    }
-
-    df = df.rename(columns=album_cols)
 
     DROP_COLS = [
         "artists",
@@ -115,29 +107,31 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
 def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={
     "track.artists": "artists",
-    "track.album.artists": "album.artists",
-    "track.id": "id",
-    "track.name": "name",
-    "track.album.id": "album.id",
-    "track.album.name": "album.name",
-    "track.album.release_date": "album.release_date",
-    "track.album.total_tracks": "album.total_tracks"
+    "track.album.artists": "album_artists",
+    "track.id": "track_id",
+    "track.name": "track_name",
+    "track.album.id": "album_id",
+    "track.album.name": "album_name",
+    "track.album.release_date": "album_release_date",
+    "track.album.total_tracks": "album_total_tracks"
     })  
+
     df["artist_ids"] = df["artists"].apply(
         lambda xs: tuple(a["id"] for a in xs) if isinstance(xs, list) else None
-        ) 
+    )
     df["artist_names"] = df["artists"].apply(
-        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    lambda xs: tuple(a["name"] for a in xs) if isinstance(xs, list) else None
     )
     df["artist_types"] = df["artists"].apply(
-        lambda xs: [a["type"] for a in xs] if isinstance(xs, list) else None
+    lambda xs: tuple(a["type"] for a in xs) if isinstance(xs, list) else None
     )
-    df["album_artist_ids"] = df["album.artists"].apply(
-        lambda xs: [a["id"] for a in xs] if isinstance(xs, list) else None
+    df["album_artist_ids"] = df["album_artists"].apply(
+    lambda xs: tuple(a["id"] for a in xs) if isinstance(xs, list) else None
     )
-    df["album_artist_names"] = df["album.artists"].apply(
-        lambda xs: [a["name"] for a in xs] if isinstance(xs, list) else None
+    df["album_artist_names"] = df["album_artists"].apply(
+    lambda xs: tuple(a["name"] for a in xs) if isinstance(xs, list) else None
     )
+    
     DROP_COLS = [
         "external_urls",
         "href",
