@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import pandas as pd
+import logging
 
 DROP_PATTERNS = [
     "available_markets",
@@ -40,6 +41,8 @@ def append_to_parquet(df, parquet_path, subset="played_at"):
     return combined
 
 def transform_silver_artist(df: pd.DataFrame) -> pd.DataFrame:
+    logging.info(f"df Columns before rename and dropping: {sorted(df.columns)} in top artist")  
+
     cols_to_drop = [
         col for col in df.columns
         if any(pattern in col for pattern in DROP_PATTERNS)
@@ -48,6 +51,7 @@ def transform_silver_artist(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=cols_to_drop, errors="ignore")
 
 def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
+    logging.info(f"df Columns before rename and dropping: {sorted(df.columns)} in top track")  
     df = df.rename(columns={
     "artists": "artists",
     "album.artists": "album_artists",
@@ -55,6 +59,7 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
     "name": "track_name",
     "album.id": "album_id",
     "album.name": "album_name",
+    "album.album_type": "album_type",
     "album.release_date": "album_release_date",
     "album.total_tracks": "album_total_tracks"
     }) 
@@ -86,7 +91,7 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
         "preview_url",
         "album.images",
         "album.uri",
-        "album.artists",
+        "album_artists",
         "album.available_markets",
         "album.external_urls.spotify",
         "album.href",
@@ -105,6 +110,7 @@ def transform_silver_track(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
+    logging.info(f"df Columns before rename and dropping: {sorted(df.columns)} in recent track")  
     df = df.rename(columns={
     "track.artists": "artists",
     "track.album.artists": "album_artists",
@@ -112,8 +118,17 @@ def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
     "track.name": "track_name",
     "track.album.id": "album_id",
     "track.album.name": "album_name",
+    "track.disc_number": "album_disc_number",
+    "track.duration_ms": "duration_ms",
+    "track.explicit": "explicit",
+    "track.popularity": "popularity",
+    "track.type": "type",
+    "track.track_number": "track_number",
+    "context.type": "context_type",
     "track.album.release_date": "album_release_date",
-    "track.album.total_tracks": "album_total_tracks"
+    "track.album.album_type": "album_type",
+    "track.album.total_tracks": "album_total_tracks",
+    "track.album.release_date_precision": "album_release_date_precision"
     })  
 
     df["artist_ids"] = df["artists"].apply(
@@ -146,6 +161,7 @@ def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
         "track.album.external_urls.spotify",
         "track.album.href",
         "track.album.uri",
+        "track.album.type",
         "track.external_urls.spotify",
         "track.available_markets",
         "track.external_urls.spotify",
@@ -155,12 +171,10 @@ def transform_silver_recent_track(df: pd.DataFrame) -> pd.DataFrame:
         "context.external_urls.spotify",
         "context.href",
         "artists",
-        "album.artists",
-        "track.album.album_type",
+        "album_artists",
         "track.external_ids.isrc",
         "context.uri",
         "album.is_playable", 
-        "album.release_date_precision", 
         "external_ids.isrc", 
         "track.album.release_date_precision",
         "track.is_local", 

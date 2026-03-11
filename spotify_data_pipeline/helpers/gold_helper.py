@@ -79,11 +79,13 @@ def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]
         df["artist_ids"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
         df["artist_names"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
         df["artist_types"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
+        df["album_artist_ids"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+        df["album_artist_names"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
 
         df = df.drop(columns=["artists_combined"])
 
         df = df.drop_duplicates(
-            subset=["id", "artist_ids", "snapshot_date"],
+            subset=["track_id", "artist_ids", "snapshot_date"],
             keep="first"
         )
         cleaned[key] = df
@@ -95,7 +97,7 @@ def clean_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
     df = clean_track_sequence(df)
 
     df = df.drop_duplicates(
-        subset=["id", "played_at"],
+        subset=["track_id", "played_at"],
         keep="first"
     )
     
