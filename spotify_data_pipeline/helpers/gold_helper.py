@@ -52,6 +52,12 @@ def build_gold_artist():
         for t in TERMS
     }
     df_all = unify_silver(silvers, scope="top_artists")
+
+    df_all = df_all.drop_duplicates(
+        subset=["id", "snapshot_date", "position", "term"],
+        keep="first"
+    )
+
     write_gold(df_all, "top_artists")
     logging.info(f"{len(df_all)} artists files written to gold")    
 
@@ -76,16 +82,16 @@ def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]
 
         df = df.explode("artists_combined")
 
-        df["artist_ids"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
-        df["artist_names"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
-        df["artist_types"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
-        df["album_artist_ids"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
-        df["album_artist_names"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+        df["artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+        df["artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+        df["artist_type"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
+        df["album_artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+        df["album_artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
 
         df = df.drop(columns=["artists_combined"])
 
         df = df.drop_duplicates(
-            subset=["track_id", "artist_ids", "snapshot_date"],
+            subset=["track_id", "artist_id", "snapshot_date"],
             keep="first"
         )
         cleaned[key] = df
@@ -96,8 +102,29 @@ def clean_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
     df = clean_track_names(df)
     df = clean_track_sequence(df)
 
+    df["artists_combined"] = df.apply(
+        lambda row: [
+            {"id": i, "name": n, "type": t}
+            for i, n, t in zip(
+                   row["artist_ids"], row["artist_names"], row["artist_types"]
+            )
+        ],
+        axis=1
+    )
+
+    df = df.explode("artists_combined")
+
+    df["artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+    df["artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+    df["artist_type"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
+    df["album_artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+    df["album_artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+
+    df = df.drop(columns=["artists_combined"])
+
+
     df = df.drop_duplicates(
-        subset=["track_id", "played_at"],
+        subset=["track_id", "artist_id", "played_at"],
         keep="first"
     )
     

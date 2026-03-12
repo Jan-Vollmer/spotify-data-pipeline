@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS dim_genre (
 CREATE TABLE IF NOT EXISTS dim_album (
     album_id VARCHAR PRIMARY KEY,
     album_name VARCHAR,
-    release_date DATE,
     album_type VARCHAR,
     album_total_tracks INTEGER
 );
@@ -50,8 +49,8 @@ CREATE TABLE IF NOT EXISTS fact_artist_rankings (
     artist_id VARCHAR,
     term_id VARCHAR,
     position INTEGER,
-    snapshot_date DATE,
-    PRIMARY KEY (artist_id, term_id, snapshot_date),
+    snapshot_date TIMESTAMP,
+    PRIMARY KEY (artist_id, term_id, snapshot_date, position),
     FOREIGN KEY (artist_id) REFERENCES dim_artist(artist_id),
     FOREIGN KEY (term_id) REFERENCES dim_term(term_id)
 );
@@ -60,8 +59,8 @@ CREATE TABLE IF NOT EXISTS fact_track_rankings (
     track_id VARCHAR,
     term_id VARCHAR,
     position INTEGER,
-    snapshot_date DATE,
-    PRIMARY KEY (track_id, term_id, snapshot_date),
+    snapshot_date TIMESTAMP,
+    PRIMARY KEY (track_id, term_id, snapshot_date, position),
     FOREIGN KEY (track_id) REFERENCES dim_track(track_id),
     FOREIGN KEY (term_id) REFERENCES dim_term(term_id)
 );
