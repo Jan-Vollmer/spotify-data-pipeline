@@ -144,3 +144,5 @@ db.con.execute("""
         context
         FROM read_parquet('data/gold/recent_tracks/*.parquet')                 
     """)
+
+db.con.close()

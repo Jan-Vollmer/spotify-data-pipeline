@@ -1,16 +1,31 @@
-from helpers.duckdb_helper import DuckDBHelper
+from spotify_data_pipeline.helpers.duckdb_helper import DuckDBHelper
+from spotify_data_pipeline.helpers.query_helper import *
 
 def main():
-    db = DuckDBHelper("top_artists")
+    db = DuckDBHelper("data/warehouse.duckdb")
     
-    df_top10 = db.top_n_by_term(10)
-    print("Top 10 Artists je Term:")
-    print(df_top10)
-    
-    artist_name = "Lacrimosa"
-    df_history = db.top_scope_over_time(artist_name)
-    print(f"Verlauf von Artist {artist_name}:")
-    print(df_history)
+    print("top_n_artist_by_term:")
+    print(top_n_artist_by_term(db, 10))
+
+    print("top_scope_over_time:")
+    print(top_scope_over_time(db, "Lacrimosa"))
+
+    print("biggest_rank_improvement")
+    print(biggest_rank_improvement(db))
+
+    print("most_stable_artists")
+    print(most_stable_artists(db))
+
+    print("new_artists")
+    print(new_artists(db))
+
+    print("most_stable_track_per_term")
+    print(most_stable_track_per_term(db))
+
+    print("top_track_over_time")
+    print(top_track_over_time(db, "Der Morgen danach"))
+
+    db.con.close()
 
 if __name__ == "__main__":
     main()
