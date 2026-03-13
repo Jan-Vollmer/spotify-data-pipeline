@@ -1,7 +1,11 @@
-# Spotify Data Engineering & Machine Learning Pipeline
+# Spotify Data Engineering Pipeline
 
-## Executive Summary
-Local data pipeline for collecting, structuring, and enabling analysis of personal Spotify usage data.
+## Overview
+Local data engineering pipeline for collecting, structuring, and analyzing personal Spotify listening data.
+
+The project implements a layered data architecture (Bronze → Silver → Gold) to ingest data from the Spotify Web API, process it into structured datasets, and store it in an analytical warehouse for querying and exploration.
+
+The goal is to demonstrate core data engineering concepts including data ingestion, layered transformations, reproducible pipelines, and automated testing in a lightweight local environment.
 
 ## Business Case
 - Spotify insights are highly aggregated and only available annually
@@ -13,60 +17,218 @@ Local data pipeline for collecting, structuring, and enabling analysis of person
   - cloud infrastructure would add unnecessary complexity
   - operational overhead outweighs current benefits
 
-MVP Approach: The pipeline is developed stepwise. Currently, only Top Artists are fully implemented, enabling a complete end-to-end flow from raw ingestion (Bronze) to cleaned storage (Silver). The Analytics Enablement will in the beginning only be availible for this endpoint. Top tracks and further progression for recent tracks will follow in later iterations.
+---
 
-## Target State
+# Architecture
 
-### Ingestion
-- Spotify Web API
-- Manual or lightweight scheduled execution
+The pipeline follows a simplified **Medallion Architecture**.
 
-### Storage
-- CSV (raw)
-- Parquet (processed)
-- Local filesystem
+Spotify API
+↓
+Bronze (raw ingestion)
+↓
+Silver (cleaned and normalized datasets)
+↓
+Gold (analytics-ready tables)
+↓
+DuckDB Warehouse
 
-### Transformation
-- Python / Pandas
-- Explicit schemas and basic data quality checks
+### Layer Responsibilities
 
-### Analytics Enablement
-- Jupyter Notebooks
-- Exploratory Data Analysis (EDA)
-- Feature engineering for downstream use
-- Model building optional
+**Bronze**
+- Raw API responses
+- Minimal transformation
+- Append-only ingestion
+- Snapshot-based storage
 
-### Operations
-- Docker for reproducibility and environment isolation
-- Containerization keeps a future cloud move technically simple, if needed
+**Silver**
+- Data cleaning
+- Schema normalization
+- Field extraction
+- Deduplication and validation
 
+**Gold**
+- Analytics-ready tables
+- Structured datasets optimized for querying
+- Aggregation and modeling for downstream analysis
 
-## Methodology (CRISP-DM)
+---
 
-### 1. Business Understanding
-Define the problem, KPIs, and value proposition (regular insights, full data ownership).
+# Data Sources
 
-### 2. Data Understanding
-Initial data exploration, structure checks, and understanding of Spotify fields.
+The pipeline collects data from the **Spotify Web API**:
 
-### 3. Data Preparation
-Schema definition, data cleaning, Parquet conversion, and initial validations.
+- Top Artists
+- Top Tracks
+- Recently Played Tracks
 
-### 4. Modeling
-EDA, feature engineering, and prototyping of clustering and NLP models.
+These endpoints allow building a structured historical dataset of listening behavior.
 
-### 5. Evaluation
-interpretability and analytical usefulness
+---
 
-### 6. Deployment
-reproducible local execution
+# Technology Stack
 
-## Deliverables
-- Local, reproducible ETL pipeline
-- Structured Parquet datasets
-- Analytics-ready data models
-- Clean and maintainable project structure
+| Component | Technology |
+|---|---|
+Language | Python 3 |
+Data Processing | Pandas |
+Analytical Database | DuckDB |
+Storage Formats | CSV (Bronze), Parquet (Silver / Gold) |
+API Integration | Spotify Web API |
+Testing | Pytest |
+Environment Management | Python Virtual Environment |
+Containerization | Docker (planned) |
 
-## Optional Future Extensions
-- Increased automation if requirements grow
-- Cloud deployment only if complexity becomes justified
+---
+
+# Project Structure
+spotify_data_pipeline/
+
+data/
+bronze/
+silver/
+gold/
+
+spotify_data_pipeline/
+bronze/
+silver/
+gold/
+analytics/
+helpers/
+ddl/
+
+tests/
+
+requirements.txt
+pytest.ini
+README.md
+
+### Key Components
+
+**Bronze Layer**
+- API ingestion
+- raw data storage
+- retry and error handling
+
+**Silver Layer**
+- data normalization
+- schema enforcement
+- structured dataset generation
+
+**Gold Layer**
+- analytics-ready tables
+- curated datasets
+
+**DDL**
+- warehouse schema definition
+- reproducible database setup
+
+**Tests**
+- unit tests for ingestion, transformations, and utilities
+
+---
+
+# Pipeline Execution
+The pipeline can either be executed end-to-end or stage by stage.
+
+Full execution of the pipeline locally:
+python -m spotify_data_pipeline.main
+
+Execution performs the following steps:
+
+1. Fetch data from the Spotify API  
+2. Store raw data in the Bronze layer  
+3. Transform and clean data into the Silver layer  
+4. Build analytics-ready datasets in the Gold layer  
+5. Populate the DuckDB analytical warehouse  
+
+## Stage-Level Execution
+
+Each pipeline stage can also be executed independently.  
+This allows targeted debugging, development, and partial pipeline runs.
+
+### Data Ingestion
+Fetch data from the Spotify API and store raw snapshots.
+
+python3 -m spotify_data_pipeline.Bronze.fill_bronze
+
+### Silver – Data Transformation
+Clean and normalize Bronze data into structured datasets.
+
+python3 -m spotify_data_pipeline.Silver.fill_silver
+
+### Analytics Tables
+Build analytics-ready tables from the Silver layer.
+
+python3 -m spotify_data_pipeline.Gold.fill_gold
+
+### Populate the Warehouse Tables
+python3 -m spotify_data_pipeline.ddl.populate_warehouse
+
+### Analytics
+Run analytical queries on the curated Gold datasets.
+
+python3 -m spotify_data_pipeline.Analytics.analyze_gold
+
+---
+
+# Data Warehouse
+
+The project uses **DuckDB** as an embedded analytical database.
+
+Benefits:
+
+- columnar storage  
+- fast analytical queries  
+- zero infrastructure overhead  
+- reproducible local environment  
+
+The warehouse schema is defined using SQL and can be reset or recreated using the provided scripts.
+
+---
+
+# Testing
+
+The project includes automated tests using **pytest**.
+
+Test coverage includes:
+
+- API authentication  
+- error handling and retry logic  
+- transformation helpers  
+- ingestion logic  
+- utility functions  
+
+Tests can be executed with:
+pytest
+Coverage reports can be generated to validate code quality.
+
+---
+
+# Design Principles
+
+The pipeline follows several data engineering principles:
+
+- layered data architecture  
+- separation of ingestion and transformation  
+- reproducible environments  
+- modular pipeline components  
+- automated testing  
+
+The implementation intentionally favors **simple, transparent tooling** to focus on pipeline design rather than infrastructure complexity.
+
+---
+
+## Future Extensions
+
+Possible extensions if requirements grow:
+
+- containerized execution with Docker
+- workflow orchestration
+- scheduled pipeline execution
+- data quality validation
+- cloud storage and compute integration
+- feature generation pipelines for machine learning use cases
+- training dataset generation from curated data
+
+The architecture keeps these options open without introducing unnecessary complexity for the current scope.
