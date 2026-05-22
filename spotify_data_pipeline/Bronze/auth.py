@@ -5,6 +5,7 @@ from urllib.parse import urlencode, urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 import threading
+from azure.storage.blob import BlobServiceClient
 
 load_dotenv()
 
@@ -12,28 +13,49 @@ CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TOKEN_DIR = os.path.join(BASE_DIR, "tokens")
-os.makedirs(TOKEN_DIR, exist_ok=True)
+AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
+AZURE_CONTAINER = os.getenv("AZURE_CONTAINER")
+TOKEN_BLOB_PREFIX = "tokens/"
 
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# TOKEN_DIR = os.path.join(BASE_DIR, "tokens")
+# os.makedirs(TOKEN_DIR, exist_ok=True)
+
+def _blob_client(blob_name: str):
+    service = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+    return service.get_blob_client(container=AZURE_CONTAINER, blob=blob_name)
+
+"""
 def get_refresh_token_file(scope: str) -> str:
     safe_scope = scope.replace(" ", "_").replace("-", "_")
     return os.path.join(TOKEN_DIR, f"refresh_token_{safe_scope}.txt")
-
 
 def save_refresh_token(token: str, scope: str):
     file_path = get_refresh_token_file(scope)
     with open(file_path, "w") as f:
         f.write(token)
 
+"""
 
+def save_refresh_token(token: str, scope: str):
+    blob_name = f"{TOKEN_BLOB_PREFIX}refresh_token_{scope.replace(' ', '_').replace('-', '_')}.txt"
+    _blob_client(blob_name).upload_blob(token, overwrite=True)
+
+"""
 def load_refresh_token(scope: str) -> str:
     file_path = get_refresh_token_file(scope)
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             return f.read().strip()
     return None
+"""
 
+def load_refresh_token(scope: str) -> str:
+    blob_name = f"{TOKEN_BLOB_PREFIX}refresh_token_{scope.replace(' ', '_').replace('-', '_')}.txt"
+    try:
+        return _blob_client(blob_name).download_blob().readall().decode()
+    except Exception:
+        return None
 
 def get_auth_url(scope: str) -> str:
     params = {
@@ -109,12 +131,10 @@ def get_code_via_local_server(scope: str) -> str:
     return code
 
 
-def get_or_refresh_token(scope: str) -> str:
+def get_or_refresh_token(scope: str):
     refresh_token = load_refresh_token(scope)
-    if refresh_token:
-        return refresh_access_token(refresh_token)
 
-    code = get_code_via_local_server(scope)
-    token_data = request_token_with_code(code)
-    save_refresh_token(token_data["refresh_token"], scope)
-    return token_data["access_token"]
+    if not refresh_token:
+        raise RuntimeError("No refresh token found. Run local auth bootstrap first.")
+
+    return refresh_access_token(refresh_token)

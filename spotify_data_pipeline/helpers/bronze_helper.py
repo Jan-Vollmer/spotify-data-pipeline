@@ -1,30 +1,37 @@
 import json
-from pathlib import Path
 from typing import Any
 import logging
+import os
+from azure.storage.blob import BlobServiceClient
+
+AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
+AZURE_CONTAINER = os.getenv("AZURE_CONTAINER")
 
 def write_bronze_batch(
     entity: str,
     payload: Any,
     downloaded_at: str,
-    base_path: str = "data/bronze",
     subdir: str | None = None,
-):
-    path = Path(base_path) / entity
-
+) -> str:
+    logging.warning(f"AZURE_CONTAINER = {AZURE_CONTAINER}")
+    logging.warning(f"AZURE_CONNECTION_STRING present = {bool(AZURE_CONNECTION_STRING)}")
     if subdir:
-        path = path / subdir
+        blob_name = f"bronze/{entity}/{subdir}/{entity}_{downloaded_at}.json"
+    else:
+        blob_name = f"bronze/{entity}/{entity}_{downloaded_at}.json"
 
-    path.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(payload, ensure_ascii=False, indent=4)
 
-    file_path = path / f"{entity}_{downloaded_at}.json"
-    tmp_path = file_path.with_suffix(".tmp") 
-
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=4)
-        
-    tmp_path.rename(file_path) 
-    return file_path
+    blob_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING).get_blob_client(
+    container=AZURE_CONTAINER, blob=blob_name
+    )
+    try:
+        blob_client.upload_blob(data, overwrite=True)
+        logging.warning(f"Uploaded blob: {blob_name}") 
+    except Exception:
+        logging.exception("Blob upload failed")
+        raise
+    return blob_name
 
 def fetch_and_write(entity: str, getter_func, access_token: str, downloaded_at: str, limit: int = None, time_ranges: list[str] = None):
     if time_ranges is None:

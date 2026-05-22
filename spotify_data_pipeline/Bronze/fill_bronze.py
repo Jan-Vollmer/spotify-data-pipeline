@@ -11,9 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 def fill_bronze(limit_top: int = None, limit_recent: int = None):
-    
-    Path("data/bronze").mkdir(parents=True, exist_ok=True)
-    
+    logging.warning("FILL_BRONZE ENTERED")  
     downloaded_at = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 
     access_top = get_or_refresh_token("user-top-read")
@@ -22,7 +20,8 @@ def fill_bronze(limit_top: int = None, limit_recent: int = None):
     fetch_and_write("top_tracks", get_top_tracks, access_top, downloaded_at, limit_top)
     fetch_and_write("top_artists", get_top_artists, access_top, downloaded_at, limit_top)
     recent_tracks = get_recent_tracks(access_recent, limit=limit_recent)
-            
+    
+    logging.warning("ABOUT TO UPLOAD BLOB")         
     write_bronze_batch(
     entity="recent_tracks",
     payload=recent_tracks,

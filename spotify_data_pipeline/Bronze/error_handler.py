@@ -66,8 +66,7 @@ def request_with_retry(url, headers=None, params=None, max_retries=3):
             sleep(e.wait or backoff(attempt))
 
         except AuthError:
-            refresh_access_token()
-            continue
+            raise
 
         except SpotifyAPIError:
             raise    

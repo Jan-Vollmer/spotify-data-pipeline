@@ -217,6 +217,48 @@ The pipeline follows several data engineering principles:
 
 The implementation intentionally favors **simple, transparent tooling** to focus on pipeline design rather than infrastructure complexity.
 
+## Data Quality & Testing Limitations
+
+This project includes a comprehensive test suite covering core components such as API integration, error handling, and data transformations.
+
+However, some limitations exist regarding full pipeline validation:
+
+- End-to-end pipeline tests are currently **partially mocked**, especially in orchestration layers  
+- This approach ensures isolation and avoids unintended side effects (e.g. writing to persistent directories), but reduces validation depth  
+- As a result, **data correctness across the full pipeline is not yet fully guaranteed**
+
+### Known Gaps
+
+- No fully isolated end-to-end test using controlled input datasets  
+- Limited validation of final analytical outputs (e.g. ranking correctness)  
+- No formal data quality framework (e.g. expectations, constraints)
+
+### Planned Improvements
+
+- Introduce **isolated end-to-end tests** using temporary file systems  
+- Reduce mocking in critical data transformation paths  
+- Add **data quality checks** (e.g. completeness, uniqueness, consistency)  
+- Implement validation rules for analytical outputs (e.g. ranking stability)
+
+---
+
+## Learning Goals
+
+This project serves as a transition from a SAP retail consultant/developer role towards data engineering and ML enablement.
+
+Focus areas include:
+
+- building end-to-end data pipelines  
+- applying layered data architectures  
+- handling real-world API data ingestion  
+- understanding trade-offs between simplicity and robustness  
+
+Future work will focus on:
+
+- cloud-based pipeline execution (Azure)  
+- data quality frameworks  
+- ML-ready dataset preparation  
+
 ---
 
 ## Future Extensions
