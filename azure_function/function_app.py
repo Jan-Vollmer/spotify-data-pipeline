@@ -57,30 +57,30 @@ def execute(job_name: str):
     logging.info(f"[{job_name}] wrote {len(items)} items")
 
 
-@app.timer_trigger(schedule="0 0 * * *", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule=0 0 0 * * *, arg_name="timer", run_on_startup=False)
 def recent_tracks(timer: func.TimerRequest):
     execute("recent_tracks")
 
-@app.timer_trigger(schedule="0 0 1 * *", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 * *", arg_name="timer", run_on_startup=False)
 def top_tracks_short(timer: func.TimerRequest):
     execute("top_tracks_short")
 
-@app.timer_trigger(schedule="0 0 1 */6 *", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 */6 *", arg_name="timer", run_on_startup=False)
 def top_tracks_medium(timer: func.TimerRequest):
     execute("top_tracks_medium")
 
-@app.timer_trigger(schedule="0 0 1 0 */12", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 1 *", arg_name="timer", run_on_startup=False)
 def top_tracks_long(timer: func.TimerRequest):
     execute("top_tracks_long")
 
-@app.timer_trigger(schedule="0 0 1 * *", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 * *", arg_name="timer", run_on_startup=False)
 def top_artists_short(timer: func.TimerRequest):
     execute("top_artists_short")
 
-@app.timer_trigger(schedule="0 0 1 */6 *", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 */6 *", arg_name="timer", run_on_startup=False)
 def top_artists_medium(timer: func.TimerRequest):
     execute("top_artists_medium")
 
-@app.timer_trigger(schedule="0 0 1 0 */12", arg_name="timer", run_on_startup=True)
+@app.timer_trigger(schedule="0 0 0 1 1 *", arg_name="timer", run_on_startup=False)
 def top_artists_long(timer: func.TimerRequest):
     execute("top_artists_long")        
