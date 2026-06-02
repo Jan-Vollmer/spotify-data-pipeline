@@ -15,6 +15,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/tasks.json
 
 # macOS
 .DS_Store
