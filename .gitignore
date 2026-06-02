@@ -26,7 +26,7 @@ local.settings.json
 # CSV oder Daten
 data/
 *.csv
-*.json
+data/**/*.json
 *.parquet
 refresh_token*.txt
 *.duckdb

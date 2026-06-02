@@ -43,6 +43,9 @@ jobs:
           cp azure_function/host.json .
           cp azure_function/requirements.txt .
 
+      - name: Debug structure
+        run: ls -la && ls -la azure_function/
+
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
