@@ -9,4 +9,3 @@ python-dotenv
 pandas
 pyarrow
 numpy
-pytest
