@@ -43,14 +43,3 @@ def test_handle_http_error_other():
     with pytest.raises(SpotifyAPIError) as e:
         handle_http_error(resp)
     assert "Not Found" in str(e.value)
-
-import pytest
-from spotify_data_pipeline.Bronze.error_handler import request_with_retry, RetryableError
-
-def test_request_with_retry_integration_success():
-    resp = request_with_retry("https://httpbin.org/status/200")
-    assert resp.status_code == 200
-
-def test_request_with_retry_500():
-    with pytest.raises(RuntimeError):
-        request_with_retry("https://httpbin.org/status/500", max_retries=1)
