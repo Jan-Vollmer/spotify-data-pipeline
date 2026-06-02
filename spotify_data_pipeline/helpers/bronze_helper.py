@@ -3,6 +3,7 @@ from typing import Any
 import logging
 import os
 from azure.storage.blob import BlobServiceClient
+from spotify_data_pipeline.helpers.deprecation import deprecated
 
 AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
 AZURE_CONTAINER = os.getenv("AZURE_CONTAINER")
@@ -33,6 +34,7 @@ def write_bronze_batch(
         raise
     return blob_name
 
+@deprecated
 def fetch_and_write(entity: str, getter_func, access_token: str, downloaded_at: str, limit: int = None, time_ranges: list[str] = None):
     if time_ranges is None:
         time_ranges = ["short_term", "medium_term", "long_term"]

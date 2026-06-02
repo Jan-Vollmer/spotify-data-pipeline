@@ -1,77 +1,66 @@
 import json
-from pathlib import Path
 import pytest
-from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch, fetch_and_write
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch
 
-def test_write_bronze_batch_creates_file_and_writes_json(tmp_path: Path):
-    entity = "customer"
-    payload = {"id": 1, "name": "Max"}
-    downloaded_at = "2024-01-01"
-    base_path = tmp_path
 
-    file_path = write_bronze_batch(
-        entity=entity,
-        payload=payload,
-        downloaded_at=downloaded_at,
-        base_path=str(base_path),
-    )
+def test_write_bronze_batch_uploads_correct_blob_name():
+    with patch("spotify_data_pipeline.helpers.bronze_helper.BlobServiceClient") as mock_service:
+        mock_blob_client = MagicMock()
+        mock_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
 
-    assert file_path.exists()
-    assert file_path.is_file()
+        write_bronze_batch(
+            entity="recent_tracks",
+            payload=[{"track": "song"}],
+            downloaded_at="2026-01-01T00-00-00"
+        )
 
-    with open(file_path, encoding="utf-8") as f:
-        data = json.load(f)
+        call_kwargs = mock_service.from_connection_string.return_value.get_blob_client.call_args[1]
+        assert call_kwargs["blob"] == "bronze/recent_tracks/recent_tracks_2026-01-01T00-00-00.json"
+        mock_blob_client.upload_blob.assert_called_once()
 
-    assert data == payload
 
-def test_write_bronze_batch_with_subdir(tmp_path: Path):
-    entity = "order"
-    payload = {"order_id": 123}
-    downloaded_at = "2024-01-02"
-    subdir = "daily"
-    base_path = tmp_path
+def test_write_bronze_batch_uploads_correct_blob_name_with_subdir():
+    with patch("spotify_data_pipeline.helpers.bronze_helper.BlobServiceClient") as mock_service:
+        mock_blob_client = MagicMock()
+        mock_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
 
-    file_path = write_bronze_batch(
-        entity=entity,
-        payload=payload,
-        downloaded_at=downloaded_at,
-        base_path=str(base_path),
-        subdir=subdir,
-    )
+        write_bronze_batch(
+            entity="top_tracks",
+            payload=[{"track": "song"}],
+            downloaded_at="2026-01-01T00-00-00",
+            subdir="short_term"
+        )
 
-    expected_path = (
-        tmp_path / entity / subdir / f"{entity}_{downloaded_at}.json"
-    )
+        call_kwargs = mock_service.from_connection_string.return_value.get_blob_client.call_args[1]
+        assert call_kwargs["blob"] == "bronze/top_tracks/short_term/top_tracks_2026-01-01T00-00-00.json"
 
-    assert file_path == expected_path
-    assert file_path.exists()    
 
-def test_write_bronze_batch_creates_directories(tmp_path: Path):
-    entity = "product"
-    payload = {"sku": "ABC"}
-    downloaded_at = "2024-01-03"
-    subdir = "full"
+def test_write_bronze_batch_uploads_valid_json():
+    with patch("spotify_data_pipeline.helpers.bronze_helper.BlobServiceClient") as mock_service:
+        mock_blob_client = MagicMock()
+        mock_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
 
-    write_bronze_batch(
-        entity=entity,
-        payload=payload,
-        downloaded_at=downloaded_at,
-        base_path=str(tmp_path),
-        subdir=subdir,
-    )
+        payload = [{"track": "song", "id": 1}]
+        write_bronze_batch(
+            entity="recent_tracks",
+            payload=payload,
+            downloaded_at="2026-01-01T00-00-00"
+        )
 
-    dir_path = tmp_path / entity / subdir
-    assert dir_path.exists()
-    assert dir_path.is_dir()
+        uploaded_data = mock_blob_client.upload_blob.call_args[0][0]
+        assert json.loads(uploaded_data) == payload
 
-def test_fetch_and_write_calls_write_bronze_batch(monkeypatch):
-    mock_write = MagicMock()
-    monkeypatch.setattr("spotify_data_pipeline.helpers.bronze_helper.write_bronze_batch", mock_write)
 
-    mock_getter = MagicMock(return_value=[{"id": 1}])
-    fetch_and_write("top_tracks", mock_getter, "token", "2026-01-23", limit=5)
+def test_write_bronze_batch_raises_on_upload_failure():
+    with patch("spotify_data_pipeline.helpers.bronze_helper.BlobServiceClient") as mock_service:
+        mock_blob_client = MagicMock()
+        mock_blob_client.upload_blob.side_effect = Exception("Upload failed")
+        mock_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
 
-    assert mock_getter.call_count == 3  # short, medium, long
-    assert mock_write.call_count == 3
-    assert mock_write.call_args_list[0][1]["subdir"] == "short_term"    
+        with pytest.raises(Exception, match="Upload failed"):
+            write_bronze_batch(
+                entity="recent_tracks",
+                payload=[],
+                downloaded_at="2026-01-01T00-00-00"
+            )

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify_data_pipeline"
+version = "0.1.0"
+
+[tool.setuptools.packages.find]
+include = ["spotify_data_pipeline*"]
+
+[tool.coverage.run]
+omit = [
+    "*/auth_bootstrap.py",
+    "*/main.py",
+    "*/reset_warehouse.py",
+    "*/setup_warehouse.py",
+]

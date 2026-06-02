@@ -8,8 +8,10 @@ from .get_top_artists import get_top_artists
 from .get_recent_tracks import get_recent_tracks
 from ..helpers.bronze_helper import write_bronze_batch, fetch_and_write
 import logging
+from spotify_data_pipeline.helpers.deprecation import deprecated
 logging.basicConfig(level=logging.INFO)
 
+@deprecated
 def fill_bronze(limit_top: int = None, limit_recent: int = None):
     logging.warning("FILL_BRONZE ENTERED")  
     downloaded_at = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
