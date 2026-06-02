@@ -311,7 +311,7 @@ However, several limitations currently exist regarding full pipeline validation.
 
 ## Planned Next Steps
 
-- migrating pipeline execution to **Azure** (in progress)
+- migrating pipeline execution to Azure (in progress)
   - Azure Data Lake Storage Gen2 as storage backend (replaces local file system)
   - Azure Functions for scheduled, serverless pipeline execution
   - Service Principal for secure, non-interactive authentication
