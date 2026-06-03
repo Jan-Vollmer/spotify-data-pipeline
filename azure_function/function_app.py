@@ -57,7 +57,7 @@ def execute(job_name: str):
     logging.info(f"[{job_name}] wrote {len(items)} items")
 
 
-@app.timer_trigger(schedule="0 0 0 * * *", arg_name="timer", run_on_startup=False)
+@app.timer_trigger(schedule="0 0 0 * * *", arg_name="timer", run_on_startup=True)
 def recent_tracks(timer: func.TimerRequest):
     execute("recent_tracks")
 
