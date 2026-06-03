@@ -38,14 +38,15 @@ jobs:
 
       - name: Prepare package
         run: |
-          pip install -r azure_function/requirements.txt --target .python_packages/lib/site-packages
-          cp azure_function/function_app.py .
-          cp azure_function/host.json .
-          cp azure_function/requirements.txt .
-          rm -rf azure_function
+          mkdir staging
+          pip install -r azure_function/requirements.txt --target staging/.python_packages/lib/site-packages
+          cp azure_function/function_app.py staging/
+          cp azure_function/host.json staging/
+          cp azure_function/requirements.txt staging/
+          cp -r spotify_data_pipeline staging/
 
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: spotify-data-pipeline
-          package: '.'
+          package: 'staging'
