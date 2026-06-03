@@ -25,8 +25,11 @@ def load_refresh_token(scope: str) -> str:
     logging.info(f"Suche Token: container={AZURE_CONTAINER}, blob={blob_name}")
     logging.info(f"Connection String vorhanden: {bool(AZURE_CONNECTION_STRING)}")
     try:
-        return _blob_client(blob_name).download_blob().readall().decode().strip()
-    except Exception:
+        data = _blob_client(blob_name).download_blob().readall().decode().strip()
+        logging.info(f"Token gefunden, Länge: {len(data)}")
+        return data
+    except Exception as e:
+        logging.error(f"Token laden fehlgeschlagen: {type(e).__name__}: {e}")
         return None
 
 
