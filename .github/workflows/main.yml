@@ -32,9 +32,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v3
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A118B52594B443BBBE412D10F9AE5648 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1B52BF075D664271AD31EBE402EE3DAC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_02DE3230AF1A465A92ADF006515FC8E0 }}
 
       - name: Prepare package
         run: |
