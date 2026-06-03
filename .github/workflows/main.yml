@@ -8,7 +8,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     permissions:
       id-token: write
       contents: read
@@ -17,6 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r azure_function/requirements.txt
+          pip install -r azure_function/requirements-dev.txt
+
+      - name: Run tests
+        run: pytest tests/bronze
+
       - name: Login to Azure
         uses: azure/login@v3
         with:
@@ -24,8 +36,16 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Prepare package
+        run: |
+          pip install -r azure_function/requirements.txt --target .python_packages/lib/site-packages
+          cp azure_function/function_app.py .
+          cp azure_function/host.json .
+          cp azure_function/requirements.txt .
+          rm -rf azure_function
+
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: spotify-data-pipeline
-          package: './azure_function'
+          package: '.'

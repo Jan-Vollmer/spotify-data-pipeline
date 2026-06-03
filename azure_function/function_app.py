@@ -1,25 +1,16 @@
 # function_app.py
 import azure.functions as func
 
-"""from spotify_data_pipeline.Bronze.get_recent_tracks import get_recent_tracks
+from spotify_data_pipeline.Bronze.get_recent_tracks import get_recent_tracks
 from spotify_data_pipeline.Bronze.get_top_tracks import get_top_tracks
 from spotify_data_pipeline.Bronze.get_top_artists import get_top_artists
 from spotify_data_pipeline.helpers.bronze_helper import write_bronze_batch
 from spotify_data_pipeline.Bronze.auth import get_access_token
-from datetime import datetime """
+from datetime import datetime
 import logging
 
 app = func.FunctionApp()
 
-
-@app.timer_trigger(
-    schedule="0 */5 * * * *",
-    arg_name="timer",
-    run_on_startup=True
-)
-def test(timer: func.TimerRequest):
-    print("hello")
-"""
 JOBS = {
     "recent_tracks": {
         "func": get_recent_tracks,
@@ -94,4 +85,3 @@ def top_artists_medium(timer: func.TimerRequest):
 @app.timer_trigger(schedule="0 0 0 1 1 *", arg_name="timer", run_on_startup=False)
 def top_artists_long(timer: func.TimerRequest):
     execute("top_artists_long")        
-    """
