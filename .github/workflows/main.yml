@@ -36,11 +36,14 @@ jobs:
 
       - name: Prepare package
         run: |
-          pip install -r azure_function/requirements.txt --target azure_function/.python_packages/lib/site-packages
-          cp -r spotify_data_pipeline azure_function/
+            cp -r spotify_data_pipeline .
+            cp azure_function/function_app.py .
+            cp azure_function/host.json .
+            cp azure_function/requirements.txt .
+            rm -rf azure_function
 
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: spotify-data-pipeline
-          package: 'azure_function'
+          package: '.'
