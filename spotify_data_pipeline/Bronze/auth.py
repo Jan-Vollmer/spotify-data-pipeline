@@ -1,6 +1,7 @@
 import os
 
 import requests
+import logging
 from dotenv import load_dotenv
 from azure.storage.blob import BlobServiceClient
 
@@ -21,6 +22,8 @@ def _blob_client(blob_name: str):
 
 def load_refresh_token(scope: str) -> str:
     blob_name = f"{TOKEN_BLOB_PREFIX}refresh_token_{scope.replace(' ', '_').replace('-', '_')}.txt"
+    logging.info(f"Suche Token: container={AZURE_CONTAINER}, blob={blob_name}")
+    logging.info(f"Connection String vorhanden: {bool(AZURE_CONNECTION_STRING)}")
     try:
         return _blob_client(blob_name).download_blob().readall().decode().strip()
     except Exception:
