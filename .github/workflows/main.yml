@@ -21,13 +21,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Run tests
         run: |
           pip install -r azure_function/requirements.txt
           pip install -r azure_function/requirements-dev.txt
-
-      - name: Run tests
-        run: pytest tests/bronze
+          pytest tests/bronze
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -38,16 +36,11 @@ jobs:
 
       - name: Prepare package
         run: |
+          pip install -r azure_function/requirements.txt --target azure_function/.python_packages/lib/site-packages
           cp -r spotify_data_pipeline azure_function/
-          cp azure_function/function_app.py .
-          cp azure_function/host.json .
-          cp azure_function/requirements.txt .
-
-      - name: Debug structure
-        run: ls -la && ls -la azure_function/
 
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: spotify-data-pipeline
-          package: '.'
+          package: 'azure_function'
