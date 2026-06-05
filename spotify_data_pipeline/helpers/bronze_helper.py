@@ -17,9 +17,9 @@ def write_bronze_batch(
     logging.warning(f"AZURE_CONTAINER = {AZURE_CONTAINER}")
     logging.warning(f"AZURE_CONNECTION_STRING present = {bool(AZURE_CONNECTION_STRING)}")
     if subdir:
-        blob_name = f"bronze/{entity}/{subdir}/{entity}_{downloaded_at}.json"
+        blob_name = f"{entity}/{subdir}/{entity}_{downloaded_at}.json"
     else:
-        blob_name = f"bronze/{entity}/{entity}_{downloaded_at}.json"
+        blob_name = f"{entity}/{entity}_{downloaded_at}.json"
 
     data = json.dumps(payload, ensure_ascii=False, indent=4)
 
