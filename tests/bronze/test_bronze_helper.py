@@ -16,7 +16,7 @@ def test_write_bronze_batch_uploads_correct_blob_name():
         )
 
         call_kwargs = mock_service.from_connection_string.return_value.get_blob_client.call_args[1]
-        assert call_kwargs["blob"] == "bronze/recent_tracks/recent_tracks_2026-01-01T00-00-00.json"
+        assert call_kwargs["blob"] == "recent_tracks/recent_tracks_2026-01-01T00-00-00.json"
         mock_blob_client.upload_blob.assert_called_once()
 
 
@@ -33,7 +33,7 @@ def test_write_bronze_batch_uploads_correct_blob_name_with_subdir():
         )
 
         call_kwargs = mock_service.from_connection_string.return_value.get_blob_client.call_args[1]
-        assert call_kwargs["blob"] == "bronze/top_tracks/short_term/top_tracks_2026-01-01T00-00-00.json"
+        assert call_kwargs["blob"] == "top_tracks/short_term/top_tracks_2026-01-01T00-00-00.json"
 
 
 def test_write_bronze_batch_uploads_valid_json():
