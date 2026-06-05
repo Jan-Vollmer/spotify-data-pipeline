@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CONN_STRING = os.environ["AZURE_CONNECTION_STRING"]
-CONTAINER    = "bronze"          # dein Container-Name
+CONTAINER    = "bronze"
 LOCAL_DIR = Path(__file__).parent.parent.parent / "data" / "bronze"
 
 client = BlobServiceClient.from_connection_string(CONN_STRING)
@@ -15,10 +15,10 @@ container = client.get_container_client(CONTAINER)
 for path in LOCAL_DIR.rglob("*.json"):
     parts = path.relative_to(LOCAL_DIR).parts
     
-    if len(parts) == 4:  # top_artists/long_term/archive/file.json
+    if len(parts) == 4:
         entity, term, _, filename = parts
         blob_name = f"{entity}_{term}/{filename}"
-    elif len(parts) == 3:  # recent_tracks/archive/file.json
+    elif len(parts) == 3:
         entity, _, filename = parts
         blob_name = f"{entity}/{filename}"
     else:
