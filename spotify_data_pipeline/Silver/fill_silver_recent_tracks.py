@@ -9,7 +9,7 @@ from spotify_data_pipeline.helpers.pandas_utils import transform_silver_recent_t
 
 BRONZE = "bronze"
 SILVER = "silver"
-PREFIX = "/bronze/recent_tracks/"
+PREFIX = "recent_tracks/"
 
 def fill_silver_recent_tracks():
     blob_paths = [p for p in list_blobs(BRONZE, PREFIX)
