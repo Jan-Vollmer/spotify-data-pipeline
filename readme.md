@@ -2,7 +2,7 @@
 
 ## Overview
 
-Local data engineering pipeline for collecting, structuring, and analyzing personal Spotify listening data.
+Data engineering pipeline for collecting, structuring, and analyzing personal Spotify listening data.
 
 The project implements a layered data architecture (**Bronze → Silver → Gold**) to ingest data from the Spotify Web API, process it into structured datasets, and store them in an analytical warehouse for querying and exploration.
 
@@ -12,23 +12,22 @@ The primary goal is to demonstrate core data engineering concepts, including:
 - layered transformations
 - reproducible pipelines
 - automated testing
-
-All within a lightweight local environment.
+- cloud-native orchestration on Azure
 
 ---
 
 ## Business Case
 
-Spotify insights are heavily aggregated and only available periodically.  
+Spotify insights are heavily aggregated and only available periodically.
 Regular API snapshots enable:
 
 - trend analysis
 - custom KPIs
 - exploratory analytics
 
-The pipeline started as a local prototype to validate the architecture and data model.  
-With a working Bronze → Silver → Gold pipeline in place, the next step is migrating to Azure —  
-moving from a local environment to a production-grade cloud pipeline.
+The pipeline started as a local prototype to validate the architecture and data model.
+~~With a working Bronze → Silver → Gold pipeline in place, the next step is migrating to Azure~~ —
+**Bronze and Silver layers are now running on Azure** (Azure Functions + Blob Storage). Gold layer migration is the next step.
 
 ---
 
@@ -39,33 +38,35 @@ The pipeline follows a simplified **Medallion Architecture**.
 ```text
 Spotify API
     ↓
-Bronze (raw ingestion)
+Bronze (raw ingestion, Azure Blob Storage)
     ↓
-Silver (cleaned & normalized datasets)
+Silver (cleaned & normalized datasets, Azure Blob Storage)
     ↓
-Gold (analytics-ready tables)
+Gold (analytics-ready tables) — local, migration pending
     ↓
-DuckDB Warehouse
+DuckDB Warehouse — local, migration pending
 ```
 
 ## Layer Responsibilities
 
-### Bronze
+### Bronze on Azure
 
 - raw API responses
 - minimal transformation
 - append-only ingestion
 - snapshot-based storage
+- runs on Azure Functions (timer-triggered)
 
-### Silver
+### Silver on Azure
 
 - data cleaning
 - schema normalization
 - field extraction
 - deduplication
 - validation
+- runs immediately after Bronze within the same Function execution
 
-### Gold
+### Gold (local, migration pending)
 
 - analytics-ready tables
 - curated datasets optimized for querying
@@ -77,8 +78,8 @@ DuckDB Warehouse
 
 The pipeline collects data from the **Spotify Web API**:
 
-- Top Artists
-- Top Tracks
+- Top Artists (short / medium / long term)
+- Top Tracks (short / medium / long term)
 - Recently Played Tracks
 
 These endpoints enable the creation of a structured historical dataset of listening behavior.
@@ -91,12 +92,16 @@ These endpoints enable the creation of a structured historical dataset of listen
 |---|---|
 | Language | Python 3 |
 | Data Processing | Pandas |
-| Analytical Database | DuckDB |
-| Storage Formats | CSV (Bronze), Parquet (Silver / Gold) |
+| Cloud Storage | Azure Blob Storage (Bronze, Silver) |
+| Compute / Orchestration | Azure Functions (timer triggers) |
+| Authentication | Service Principal (OIDC, federated credentials) |
+| Monitoring | Application Insights |
+| Analytical Database | DuckDB *(Gold, local — migration pending)* |
+| Storage Formats | JSON (Bronze), Parquet (Silver / Gold) |
 | API Integration | Spotify Web API |
 | Testing | Pytest |
+| CI/CD | GitHub Actions |
 | Environment Management | Python Virtual Environment |
-| Containerization | Docker *(planned)* |
 
 ---
 
@@ -105,19 +110,15 @@ These endpoints enable the creation of a structured historical dataset of listen
 ```text
 spotify_data_pipeline/
 
-├── data/
-│   ├── bronze/
-│   ├── silver/
-│   └── gold/
-│
 ├── spotify_data_pipeline/
-│   ├── bronze/
-│   ├── silver/
-│   ├── gold/
-│   ├── analytics/
+│   ├── Bronze/
+│   ├── Silver/
+│   ├── Gold/
+│   ├── Analytics/
 │   ├── helpers/
 │   └── ddl/
 │
+├── function_app.py
 ├── tests/
 │
 ├── requirements.txt
@@ -130,7 +131,7 @@ spotify_data_pipeline/
 ### Bronze Layer
 
 - API ingestion
-- raw data storage
+- raw data storage in Azure Blob Storage (`bronze` container)
 - retry and error handling
 
 ### Silver Layer
@@ -138,50 +139,34 @@ spotify_data_pipeline/
 - data normalization
 - schema enforcement
 - structured dataset generation
+- writes Parquet to Azure Blob Storage (`silver` container)
+- archives processed Bronze files
 
 ### Gold Layer
 
-- analytics-ready tables
-- curated datasets
+- analytics-ready tables (local, migration pending)
 
 ### DDL
 
 - warehouse schema definition
-- reproducible database setup
+- reproducible database setup (local, migration pending)
 
 ### Tests
 
 - unit tests for ingestion, transformations, and utilities
+- Silver tests mock Blob Storage interactions
 
 ---
 
 # Pipeline Execution
 
-The pipeline can either be executed end-to-end or stage by stage.
+## Production (Azure)
 
-## Full Pipeline Execution
+Bronze and Silver run automatically via Azure Functions timer triggers. Silver executes immediately after Bronze within the same job — see [Orchestration](#orchestration) and [Scheduling](#scheduling).
 
-```bash
-python -m spotify_data_pipeline.main
-```
+## Local Development / Testing
 
-This performs the following steps:
-
-1. Fetch data from the Spotify API
-2. Store raw data in the Bronze layer
-3. Transform and clean data into the Silver layer
-4. Build analytics-ready datasets in the Gold layer
-5. Populate the DuckDB analytical warehouse
-
----
-
-## Stage-Level Execution
-
-Each pipeline stage can also be executed independently for targeted debugging and development.
-
-### Data Ingestion
-
-Fetch data from the Spotify API and store raw snapshots.
+### Data Ingestion (Bronze)
 
 ```bash
 python3 -m spotify_data_pipeline.Bronze.fill_bronze
@@ -189,29 +174,25 @@ python3 -m spotify_data_pipeline.Bronze.fill_bronze
 
 ### Silver — Data Transformation
 
-Clean and normalize Bronze data into structured datasets.
-
 ```bash
 python3 -m spotify_data_pipeline.Silver.fill_silver
 ```
 
-### Gold — Analytics Tables
+Requires `AZURE_CONNECTION_STRING` set (e.g. via `.env` with `python-dotenv`).
 
-Build analytics-ready tables from the Silver layer.
+### Gold — Analytics Tables (local, migration pending)
 
 ```bash
 python3 -m spotify_data_pipeline.Gold.fill_gold
 ```
 
-### Populate Warehouse Tables
+### Populate Warehouse Tables (local, migration pending)
 
 ```bash
 python3 -m spotify_data_pipeline.ddl.populate_warehouse
 ```
 
-### Analytics
-
-Run analytical queries on curated Gold datasets.
+### Analytics (local, migration pending)
 
 ```bash
 python3 -m spotify_data_pipeline.Analytics.analyze_gold
@@ -219,9 +200,45 @@ python3 -m spotify_data_pipeline.Analytics.analyze_gold
 
 ---
 
+# Orchestration
+
+Bronze and Silver are coupled per job: each Azure Function executes its Bronze ingestion, then immediately runs the corresponding Silver transformation (`silver_func` in the `JOBS` dict). This guarantees Silver always processes the data Bronze just wrote, without needing a separate queue or trigger.
+
+```text
+execute(job_name):
+    1. fetch token
+    2. call Spotify API
+    3. write Bronze blob
+    4. run Silver transformation for this job
+    5. archive processed Bronze file(s)
+```
+
+---
+
+# Scheduling
+
+| Job | Frequency | Reason |
+|-----|-----------|--------|
+| recent_tracks | daily | Spotify caps recently played at 50 tracks. Daily pull is sufficient for personal listening volume. |
+| top_*_short | monthly | Matches Spotify's short-term window (~4 weeks). |
+| top_*_medium | every 6 months | Matches Spotify's medium-term window (~6 months). |
+| top_*_long | yearly | Matches Spotify's long-term window (all time). |
+
+All triggers run at 00:00 UTC. On Jan 1st all 7 jobs run simultaneously — no issue since each runs in a separate Function instance. Spotify rate limits are covered by retry logic.
+
+---
+
+# Monitoring
+
+- **Application Insights** is connected via `APPLICATIONINSIGHTS_CONNECTION_STRING`
+- Structured logging per pipeline step (token load, API call, items received, Blob write, Silver run)
+- Alert configured for `"No new JSON blobs found"` to detect silent no-op Silver runs
+
+---
+
 # Data Warehouse
 
-The project uses **DuckDB** as an embedded analytical database.
+The project uses **DuckDB** as an embedded analytical database for the Gold layer *(local, migration pending)*.
 
 ## Benefits
 
@@ -244,6 +261,7 @@ The project includes automated tests using **pytest**.
 - error handling and retry logic
 - transformation helpers
 - ingestion logic
+- Silver pipeline logic (mocked Blob Storage)
 - utility functions
 
 Run tests with:
@@ -251,8 +269,6 @@ Run tests with:
 ```bash
 pytest
 ```
-
-Coverage reports can additionally be generated to validate code quality.
 
 ---
 
@@ -265,22 +281,36 @@ The pipeline follows several core data engineering principles:
 - reproducible environments
 - modular pipeline components
 - automated testing
+- cloud-native, serverless execution
 
-The implementation intentionally favors **simple and transparent tooling** to prioritize pipeline design over infrastructure complexity.
+The implementation intentionally favors **simple and transparent tooling** to prioritize pipeline design over infrastructure complexity. ~~Airflow was considered for orchestration but deemed overkill for this project's scope — the coupled Bronze→Silver execution within Azure Functions covers the dependency requirements without additional infrastructure.~~
+
+---
+
+# Architecture Decisions
+
+### Bronze → Silver Orchestration
+Silver runs directly after Bronze within the same Azure Function execution (`execute()`), rather than via a separate queue trigger or Airflow DAG. Simpler, no extra infrastructure, and sufficient for the project's dependency needs.
+
+### Blob Naming Structure
+`top_artists_{time_range}/` and `top_tracks_{time_range}/` (flat per time_range) instead of `top_artists/{time_range}/` (nested). Chosen for direct prefix access matching how the pipeline is partitioned (per time_range, not per scope).
+
+### Monitoring Alert Cost
+A "no data processed" alert was evaluated at ~$0.50/month. Decided against it for this private project on cost grounds — manual log review via Application Insights is sufficient at this scale.
+
+### Airflow
+Considered for orchestration. Deemed overkill — 7 independent jobs with a simple linear Bronze→Silver dependency don't justify the operational overhead of running Airflow on Azure (no managed offering on Azure equivalent to AWS MWAA).
 
 ---
 
 # Data Quality & Testing Limitations
-
-The project includes a comprehensive test suite covering core components such as API integration, error handling, and data transformations.
-
-However, several limitations currently exist regarding full pipeline validation.
 
 ## Current Limitations
 
 - End-to-end pipeline tests are partially mocked, especially within orchestration layers
 - Mocking ensures isolation and prevents unintended side effects (e.g. persistent writes)
 - Full data correctness across the entire pipeline is therefore not yet fully guaranteed
+- Gold layer and DuckDB warehouse are not yet migrated to Azure
 
 ## Known Gaps
 
@@ -290,7 +320,7 @@ However, several limitations currently exist regarding full pipeline validation.
 
 ## Planned Improvements
 
-- introduce isolated end-to-end tests using temporary file systems
+- introduce isolated end-to-end tests using temporary file systems / mocked Blob Storage
 - reduce mocking in critical transformation paths
 - add data quality checks:
   - completeness
@@ -308,25 +338,26 @@ However, several limitations currently exist regarding full pipeline validation.
 - applying layered data architectures
 - handling real-world API ingestion
 - understanding trade-offs between simplicity and robustness
+- cloud-native serverless architecture on Azure
 
 ## Planned Next Steps
 
-- migrating pipeline execution to Azure (in progress)
-  - Azure Data Lake Storage Gen2 as storage backend (replaces local file system)
-  - Azure Functions for scheduled, serverless pipeline execution
-  - Service Principal for secure, non-interactive authentication
+- ~~migrating pipeline execution to Azure (in progress)~~
+  - ~~Azure Blob Storage as storage backend (replaces local file system)~~ done (Bronze, Silver)
+  - ~~Azure Functions for scheduled, serverless pipeline execution~~ done
+  - ~~Service Principal for secure, non-interactive authentication~~ done (OIDC, federated credentials)
+- migrate Gold layer and DuckDB warehouse to Azure
 - data quality frameworks
 - ML-ready dataset preparation
+- introduce Terraform for infrastructure-as-code
 
 # Future Extensions
 
 Potential future extensions include:
 
-- workflow orchestration
-- scheduled pipeline execution
 - data quality validation
-- cloud storage and compute integration
 - feature generation pipelines for ML use cases
 - training dataset generation from curated data
+- Hierarchical Namespace (HNS) for future Spark/Synapse workloads if data volume grows
 
 The architecture keeps these options open without introducing unnecessary complexity for the current project scope.

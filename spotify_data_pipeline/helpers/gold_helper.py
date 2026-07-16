@@ -2,25 +2,35 @@ import pandas as pd
 import logging
 from pathlib import Path
 from datetime import date
+from spotify_data_pipeline.helpers.blob_utils import (
+    list_blobs, download_parquet_from_blob, upload_parquet_to_blob
+)
 
 TERMS = ["long_term", "medium_term", "short_term"]
 TERM_KEYS = {"long_term": "l", "medium_term": "m", "short_term": "s"}
+SILVER = "silver"
+GOLD = "gold"
+PREFIX = "recent_tracks/"
 
 def load_silver(scope: str, time_range: str):
-    silver_dir = Path("data/silver") / scope / time_range
+    prefix = f"{scope}/{time_range}"
+    blob_paths = [p for p in list_blobs(SILVER, prefix)
+                  if p.endswith(".parquet") and "/archive/" not in p]
+    logging.info(f"{len(blob_paths)} files in {prefix}")
 
-    if not silver_dir.exists():
-        raise FileNotFoundError(silver_dir)
-
-    files = list(silver_dir.glob("*.parquet"))
-    logging.info(f"{len(files)} files in {silver_dir}")
-    if not files:
+    if not blob_paths:
+        logging.info("No matching Parquet blobs found.")
         return pd.DataFrame()
     
-    if len(files) > 100:
-        logging.warning(f"Loading {len(files)} parquet files into memory")
+    if len(blob_paths) > 100:
+        logging.warning(f"Loading {len(blob_paths)} parquet files into memory")
 
-    dfs = [pd.read_parquet(f) for f in files]
+    dfs = [download_parquet_from_blob(SILVER, path) for path in blob_paths]
+    dfs = [df for df in dfs if not df.empty]    
+
+    if not dfs:
+        return pd.DataFrame()
+
     return pd.concat(dfs, ignore_index=True)
 
 def unify_silver(dfs: dict[str, pd.DataFrame], scope: str) -> pd.DataFrame:
@@ -38,12 +48,13 @@ def unify_silver(dfs: dict[str, pd.DataFrame], scope: str) -> pd.DataFrame:
 
     return pd.concat(enriched, ignore_index=True)
 
-def write_gold(df: pd.DataFrame, scope: str):
-    gold_dir = Path("data/gold") / scope
-    gold_dir.mkdir(parents=True, exist_ok=True)
+def write_gold(df: pd.DataFrame, scope: str, year: str | None = None):
     snapshot_date = date.today()
-    file_path = gold_dir / f"{scope}_{snapshot_date}.parquet"
-    df.to_parquet(file_path, index=False)
+    if year is not None:
+        blob_path = f"{scope}/{year}/{scope}_{snapshot_date}.parquet"
+    else:
+        blob_path = f"{scope}/{scope}_{snapshot_date}.parquet"
+    upload_parquet_to_blob(df, GOLD, blob_path)
     logging.info(f"{len(df)} rows written to gold for scope {scope}")
 
 def build_gold_artist():
@@ -141,31 +152,32 @@ def build_gold_top_tracks():
     logging.info(f"{len(df_all)} top_tracks rows written to gold")   
 
 def build_gold_recent_tracks(year: str = "full"):
-    silver_dir = Path("data/silver/recent_tracks/")
-    if not silver_dir.exists():
-        raise FileNotFoundError(silver_dir)
-    
-    if year == "full":
-        files = list(silver_dir.rglob("*.parquet"))
-    else:
-        dir = silver_dir / year
-        if not dir.exists():
-            raise FileNotFoundError(dir)
-        files = list(dir.glob("*.parquet"))
+    blob_paths = [p for p in list_blobs(SILVER, PREFIX)
+                  if p.endswith(".parquet") and "/archive/" not in p]
 
-    if not files:
-        raise FileNotFoundError(silver_dir)
+    if year != "full":
+        blob_paths = [p for p in blob_paths if f"/{year}/" in p]
+
+    if not blob_paths:
+        logging.info("No matching Parquet blobs found.")
+        return
     
-    dfs = [pd.read_parquet(f) for f in files]
+    dfs = [download_parquet_from_blob(SILVER, path) for path in blob_paths]
+    dfs = [df for df in dfs if not df.empty]
+
+    if not dfs:
+        logging.info("No items in Parquet blobs")
+        return
+
     df_all = pd.concat(dfs, ignore_index=True)
     df_all = clean_silver_recent_tracks(df_all)
-    write_gold(df_all, "recent_tracks")
-    logging.info(f"{len(df_all)} recent_tracks rows written to gold")   
+    write_gold(df_all, "recent_tracks", year if year != "full" else None)
+    logging.info(f"{len(df_all)} recent_tracks rows written to gold")
 
 
 def clean_track_sequence(df: pd.DataFrame) -> pd.DataFrame:
     desired_order = [
-        "player_at"
+        "played_at"
     ]
     front = [c for c in desired_order if c in df.columns]
     rest = [c for c in df.columns if c not in front]
