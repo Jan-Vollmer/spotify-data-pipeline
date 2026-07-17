@@ -50,12 +50,12 @@ def test_transform_silver_artist():
 
 def test_transform_silver_track():
     df = DataFrame({
-        "track.artists": [[{"id":"a","name":"n","type":"t"}]],
-        "track.album.artists": [[{"id":"b","name":"m"}]],
-        "track.id":["id1"],
-        "track.name":["song1"],
-        "album.images":["img"],
-        "track.preview_url":["url"]
+        "artists": [[{"id":"a","name":"n","type":"t"}]],
+        "album.artists": [[{"id":"b","name":"m"}]],
+        "id":["id1"],
+        "name":["song1"],
+        "images":["img"],
+        "preview_url":["url"]
     })
     df2 = transform_silver_track(df)
     assert "artists" not in df2.columns

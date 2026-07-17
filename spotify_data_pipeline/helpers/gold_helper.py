@@ -1,6 +1,5 @@
 import pandas as pd
 import logging
-from pathlib import Path
 from datetime import date
 from spotify_data_pipeline.helpers.blob_utils import (
     list_blobs, download_parquet_from_blob, upload_parquet_to_blob
@@ -13,7 +12,7 @@ GOLD = "gold"
 PREFIX = "recent_tracks/"
 
 def load_silver(scope: str, time_range: str):
-    prefix = f"{scope}/{time_range}"
+    prefix = f"{scope}_{time_range}"
     blob_paths = [p for p in list_blobs(SILVER, prefix)
                   if p.endswith(".parquet") and "/archive/" not in p]
     logging.info(f"{len(blob_paths)} files in {prefix}")
@@ -33,21 +32,6 @@ def load_silver(scope: str, time_range: str):
 
     return pd.concat(dfs, ignore_index=True)
 
-def unify_silver(dfs: dict[str, pd.DataFrame], scope: str) -> pd.DataFrame:
-    enriched = []
-    for term, df in dfs.items():
-        if df.empty:
-            continue
-        df = df.copy()
-        df["term"] = term
-        df["scope"] = scope
-        enriched.append(df)
-
-    if not enriched:
-        return pd.DataFrame()
-
-    return pd.concat(enriched, ignore_index=True)
-
 def write_gold(df: pd.DataFrame, scope: str, year: str | None = None):
     snapshot_date = date.today()
     if year is not None:
@@ -57,57 +41,40 @@ def write_gold(df: pd.DataFrame, scope: str, year: str | None = None):
     upload_parquet_to_blob(df, GOLD, blob_path)
     logging.info(f"{len(df)} rows written to gold for scope {scope}")
 
-def build_gold_artist():
-    silvers = {
-        TERM_KEYS[t]: load_silver("top_artists", t)
-        for t in TERMS
-    }
-    df_all = unify_silver(silvers, scope="top_artists")
+def build_gold_artist(time_range: str):
+    df = load_silver("top_artist", time_range)
+    if df.empty:
+        logging.info(f"No Silvwer data for top_artist/{time_range}")
+        return df
+    df["term"] = time_range
+    df["scope"] = "top_artists"
+    df = df.drop_duplicates(subset=["id", "snapshot_date", "position", "term"], keep = "first")
+    write_gold(df, "top_artists", time_range)
+    logging.info(f"{len(df)} artists files written to gold")    
 
-    df_all = df_all.drop_duplicates(
-        subset=["id", "snapshot_date", "position", "term"],
-        keep="first"
-    )
-
-    write_gold(df_all, "top_artists")
-    logging.info(f"{len(df_all)} artists files written to gold")    
-
-def clean_silver_tracks(dfs: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    cleaned = {}
-
-    for key, df in dfs.items():
-        if df.empty:
-            cleaned[key] = df
-            continue
-        df = clean_track_names(df)
-        df = clean_track_sequence(df)
-        df["artists_combined"] = df.apply(
-            lambda row: [
-                {"id": i, "name": n, "type": t}
-                for i, n, t in zip(
-                    row["artist_ids"], row["artist_names"], row["artist_types"]
-                )
-            ],
-            axis=1
-        )
-
-        df = df.explode("artists_combined")
-
-        df["artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
-        df["artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
-        df["artist_type"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
-        df["album_artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
-        df["album_artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
-
-        df = df.drop(columns=["artists_combined"])
-
-        df = df.drop_duplicates(
-            subset=["track_id", "artist_id", "snapshot_date"],
-            keep="first"
-        )
-        cleaned[key] = df
-
-    return cleaned    
+def clean_silver_tracks(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    df = clean_track_names(df)
+    df = clean_track_sequence(df)
+    df["artists_combined"] = df.apply(
+        lambda row: [
+            {"id": i, "name": n, "type": t}
+            for i, n, t in zip(
+                row["artist_ids"], row["artist_names"], row["artist_types"]
+            )
+        ],
+        axis=1
+    )   
+    df = df.explode("artists_combined")
+    df["artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+    df["artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+    df["artist_type"] = df["artists_combined"].apply(lambda x: x["type"] if x else None)
+    df["album_artist_id"] = df["artists_combined"].apply(lambda x: x["id"] if x else None)
+    df["album_artist_name"] = df["artists_combined"].apply(lambda x: x["name"] if x else None)
+    df = df.drop(columns=["artists_combined"])
+    df = df.drop_duplicates(subset=["track_id", "artist_id", "snapshot_date"], keep="first")
+    return df 
 
 def clean_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
     df = clean_track_names(df)
@@ -141,15 +108,16 @@ def clean_silver_recent_tracks(df: pd.DataFrame) -> pd.DataFrame:
     
     return df    
 
-def build_gold_top_tracks():
-    silvers = {
-        TERM_KEYS[t]: load_silver("top_tracks", t)
-        for t in TERMS
-    }
-    silvers = clean_silver_tracks(silvers)
-    df_all = unify_silver(silvers, scope="top_tracks")
-    write_gold(df_all, "top_tracks")
-    logging.info(f"{len(df_all)} top_tracks rows written to gold")   
+def build_gold_top_tracks(time_range: str):
+    df = load_silver("top_tracks", time_range)
+    if df.empty:
+        logging.info(f"No silver data for top_tracks/{time_range}")
+        return
+    df = clean_silver_tracks(df)
+    df["term"] = time_range
+    df["scope"] = "top_tracks"
+    write_gold(df, "top_tracks", time_range)
+    logging.info(f"{len(df)} top_tracks rows written to gold")   
 
 def build_gold_recent_tracks(year: str = "full"):
     blob_paths = [p for p in list_blobs(SILVER, PREFIX)

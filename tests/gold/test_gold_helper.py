@@ -1,163 +1,222 @@
 import pandas as pd
 from unittest.mock import patch
-import pytest
 from datetime import date
-from spotify_data_pipeline.helpers.gold_helper import load_silver, unify_silver, write_gold, build_gold_artist, clean_silver_tracks, clean_silver_recent_tracks, build_gold_top_tracks, build_gold_recent_tracks, clean_track_sequence, clean_track_names
+
+from spotify_data_pipeline.helpers.gold_helper import (
+    load_silver, write_gold, build_gold_artist, build_gold_top_tracks,
+    build_gold_recent_tracks, clean_silver_tracks, clean_silver_recent_tracks,
+    clean_track_sequence, clean_track_names,
+)
+
+GOLD_HELPER = "spotify_data_pipeline.helpers.gold_helper"
+
+
+# --- load_silver -------------------------------------------------------
 
 def test_load_silver_reads_and_concats():
     df1 = pd.DataFrame({"a": [1]})
     df2 = pd.DataFrame({"a": [2]})
 
-    fake_files = ["f1.parquet", "f2.parquet"]
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=[
+            "top_artists_short/f1.parquet", "top_artists_short/f2.parquet"]), \
+         patch(f"{GOLD_HELPER}.download_parquet_from_blob", side_effect=[df1, df2]):
 
-    with patch("spotify_data_pipeline.helpers.gold_helper.Path.exists", return_value=True), \
-         patch("spotify_data_pipeline.helpers.gold_helper.Path.glob", return_value=fake_files), \
-         patch("pandas.read_parquet", side_effect=[df1, df2]):
-
-        result = load_silver("top_artists", "short_term")
+        result = load_silver("top_artists", "short")
 
         assert len(result) == 2
         assert result["a"].tolist() == [1, 2]
 
-def test_load_silver_no_files_returns_empty_df():
-    with patch("spotify_data_pipeline.helpers.gold_helper.Path.exists", return_value=True), \
-         patch("spotify_data_pipeline.helpers.gold_helper.Path.glob", return_value=[]):
+def test_load_silver_filters_non_parquet_and_archive():
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=[
+            "top_artists_short/f1.parquet",
+            "top_artists_short/archive/old.parquet",
+            "top_artists_short/readme.txt",
+        ]), \
+         patch(f"{GOLD_HELPER}.download_parquet_from_blob", return_value=pd.DataFrame({"a": [1]})) as mock_dl:
 
-        df = load_silver("top_artists", "short_term")
+        load_silver("top_artists", "short")
+
+        mock_dl.assert_called_once_with("silver", "top_artists_short/f1.parquet")
+
+def test_load_silver_no_blobs_returns_empty_df():
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=[]):
+        df = load_silver("top_artists", "short")
         assert df.empty
 
-def test_load_silver_dir_missing_raises():
-    with patch("spotify_data_pipeline.helpers.gold_helper.Path.exists", return_value=False):
-        with pytest.raises(FileNotFoundError):
-            load_silver("top_artists", "short_term")
+def test_load_silver_skips_empty_downloads():
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=["a.parquet", "b.parquet"]), \
+         patch(f"{GOLD_HELPER}.download_parquet_from_blob",
+               side_effect=[pd.DataFrame({"a": [1]}), pd.DataFrame()]):
 
-def test_unify_silver_merges_and_adds_columns():
-    df_l = pd.DataFrame({"artist": ["A1"]})
-    df_m = pd.DataFrame({"artist": ["A2"]})
-    df_s = pd.DataFrame({"artist": ["A3"]})
+        result = load_silver("top_artists", "short")
+        assert len(result) == 1
 
-    dfs = {"l": df_l, "m": df_m, "s": df_s}
 
-    result = unify_silver(dfs, scope="top_artists")
+# --- write_gold ----------------------------------------------------------
 
-    assert len(result) == 3
-    assert set(result["term"]) == {"l", "m", "s"}
-    assert all(result["scope"] == "top_artists")
-    assert result["artist"].tolist() == ["A1", "A2", "A3"]
-
-def test_unify_silver_skips_empty_dfs():
-    df_l = pd.DataFrame({"artist": ["A1"]})
-    df_m = pd.DataFrame()
-    dfs = {"l": df_l, "m": df_m}
-
-    result = unify_silver(dfs, scope="top_artists")
-
-    assert len(result) == 1
-    assert result["term"].iloc[0] == "l"
-
-def test_write_gold_calls_to_parquet_with_correct_path():
-    df = pd.DataFrame({"artist": ["A1", "A2"]})
+def test_write_gold_path_with_year():
+    df = pd.DataFrame({"artist": ["A1"]})
     fixed_date = date(2026, 2, 12)
 
-    with patch("spotify_data_pipeline.helpers.gold_helper.Path.mkdir") as mock_mkdir, \
-         patch("pandas.DataFrame.to_parquet") as mock_parquet, \
-         patch("spotify_data_pipeline.helpers.gold_helper.date") as mock_date:
-
+    with patch(f"{GOLD_HELPER}.upload_parquet_to_blob") as mock_upload, \
+         patch(f"{GOLD_HELPER}.date") as mock_date:
         mock_date.today.return_value = fixed_date
 
-        write_gold(df, "top_artists")
+        write_gold(df, "top_artists", "short")
 
-        assert mock_mkdir.called
+        args, _ = mock_upload.call_args
+        assert args[1] == "gold"
+        assert args[2] == "top_artists/short/top_artists_2026-02-12.parquet"
 
-        assert mock_parquet.called
+def test_write_gold_path_without_year():
+    df = pd.DataFrame({"artist": ["A1"]})
+    fixed_date = date(2026, 2, 12)
 
-        parquet_path = mock_parquet.call_args[0][0]
-        assert str(parquet_path).endswith("top_artists_2026-02-12.parquet")
+    with patch(f"{GOLD_HELPER}.upload_parquet_to_blob") as mock_upload, \
+         patch(f"{GOLD_HELPER}.date") as mock_date:
+        mock_date.today.return_value = fixed_date
 
-def test_clean_track_names_renames_columns():
-    df = pd.DataFrame({
-        "album.id": [1],
-        "track.duration_ms": [100],
-        "other": ["x"]
+        write_gold(df, "recent_tracks")
+
+        args, _ = mock_upload.call_args
+        assert args[2] == "recent_tracks/recent_tracks_2026-02-12.parquet"
+
+
+# --- build_gold_artist / build_gold_top_tracks ----------------------------
+
+def test_build_gold_artist_dedups_and_writes():
+    dummy_df = pd.DataFrame({
+        "id": ["1", "1"], "snapshot_date": ["2023", "2023"], "position": [1, 1],
     })
 
-    result = clean_track_names(df)
+    with patch(f"{GOLD_HELPER}.load_silver", return_value=dummy_df), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
 
+        build_gold_artist("short")
+
+        written_df = mock_write.call_args[0][0]
+        assert len(written_df) == 1
+        assert (written_df["term"] == "short").all()
+        mock_write.assert_called_once_with(written_df, "top_artists", "short")
+
+def test_build_gold_artist_empty_silver_skips_write():
+    with patch(f"{GOLD_HELPER}.load_silver", return_value=pd.DataFrame()), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_artist("short")
+        mock_write.assert_not_called()
+
+def test_build_gold_top_tracks_calls_pipeline():
+    dummy_df = pd.DataFrame({"id": ["1"]})
+
+    with patch(f"{GOLD_HELPER}.load_silver", return_value=dummy_df), \
+         patch(f"{GOLD_HELPER}.clean_silver_tracks", return_value=dummy_df) as mock_clean, \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_top_tracks("short")
+
+        mock_clean.assert_called_once_with(dummy_df)
+        mock_write.assert_called_once_with(dummy_df, "top_tracks", "short")
+
+def test_build_gold_top_tracks_empty_silver_skips_write():
+    with patch(f"{GOLD_HELPER}.load_silver", return_value=pd.DataFrame()), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_top_tracks("short")
+        mock_write.assert_not_called()
+
+
+# --- build_gold_recent_tracks ----------------------------------------------
+
+def test_build_gold_recent_tracks_filters_by_year():
+    dummy_df = pd.DataFrame({"id": ["1"], "played_at": ["2023"]})
+
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=[
+            "recent_tracks/2023/a.parquet", "recent_tracks/2024/b.parquet"]), \
+         patch(f"{GOLD_HELPER}.download_parquet_from_blob", return_value=dummy_df) as mock_dl, \
+         patch(f"{GOLD_HELPER}.clean_silver_recent_tracks", return_value=dummy_df), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_recent_tracks(year="2023")
+
+        mock_dl.assert_called_once_with("silver", "recent_tracks/2023/a.parquet")
+        mock_write.assert_called_once_with(dummy_df, "recent_tracks", "2023")
+
+def test_build_gold_recent_tracks_full_passes_none_as_year():
+    dummy_df = pd.DataFrame({"id": ["1"], "played_at": ["2023"]})
+
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=["recent_tracks/2023/a.parquet"]), \
+         patch(f"{GOLD_HELPER}.download_parquet_from_blob", return_value=dummy_df), \
+         patch(f"{GOLD_HELPER}.clean_silver_recent_tracks", return_value=dummy_df), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_recent_tracks(year="full")
+
+        mock_write.assert_called_once_with(dummy_df, "recent_tracks", None)
+
+def test_build_gold_recent_tracks_no_matches_skips_write():
+    with patch(f"{GOLD_HELPER}.list_blobs", return_value=["recent_tracks/2024/b.parquet"]), \
+         patch(f"{GOLD_HELPER}.write_gold") as mock_write:
+
+        build_gold_recent_tracks(year="2023")
+        mock_write.assert_not_called()
+
+
+# --- Datenqualität: clean_* -------------------------------------------------
+
+def test_clean_track_names_renames_columns():
+    df = pd.DataFrame({"album.id": [1], "track.duration_ms": [100], "other": ["x"]})
+    result = clean_track_names(df)
     assert "album_id" in result.columns
     assert "duration_ms" in result.columns
-    assert "other" in result.columns
     assert "album.id" not in result.columns
 
 def test_clean_track_sequence_orders_columns():
-    df = pd.DataFrame({
-        "b": [1],
-        "player_at": [2],
-        "a": [3]
-    })
-
+    df = pd.DataFrame({"b": [1], "played_at": [2], "a": [3]})
     result = clean_track_sequence(df)
+    assert result.columns[0] == "played_at"
 
-    assert result.columns[0] == "player_at"
-
-def test_clean_silver_recent_tracks_dedup():
+def test_clean_silver_recent_tracks_explodes_and_dedups():
     df = pd.DataFrame({
-        "id": ["1", "1"],
-        "played_at": ["2023", "2023"],
-        "track.duration_ms": [100, 100]
+        "track_id": ["1"],
+        "played_at": ["2023-01-01"],
+        "artist_ids": [["a", "b"]],
+        "artist_names": [["A", "B"]],
+        "artist_types": [["artist", "artist"]],
     })
 
     result = clean_silver_recent_tracks(df)
 
-    assert len(result) == 1
-    assert "duration_ms" in result.columns        
+    assert len(result) == 2
+    assert set(result["artist_id"]) == {"a", "b"}
+    assert set(result["artist_name"]) == {"A", "B"}
 
-def test_clean_silver_tracks_explode_and_dedup():
+def test_clean_silver_recent_tracks_dedup_on_track_artist_played_at():
     df = pd.DataFrame({
-        "id": ["1"],
+        "track_id": ["1", "1"],
+        "played_at": ["2023", "2023"],
+        "artist_ids": [["a"], ["a"]],
+        "artist_names": [["A"], ["A"]],
+        "artist_types": [["artist"], ["artist"]],
+    })
+
+    result = clean_silver_recent_tracks(df)
+    assert len(result) == 1
+
+def test_clean_silver_tracks_explodes_and_dedups():
+    df = pd.DataFrame({
+        "track_id": ["1"],
         "snapshot_date": ["2023"],
         "artist_ids": [["a", "b"]],
         "artist_names": [["A", "B"]],
         "artist_types": [["artist", "artist"]],
     })
 
-    result = clean_silver_tracks({"short_term": df})
-    cleaned_df = result["short_term"]
+    result = clean_silver_tracks(df)
 
-    assert len(cleaned_df) == 2
+    assert len(result) == 2
+    assert set(result["artist_id"]) == {"a", "b"}
 
-    assert "artist_ids" in cleaned_df.columns
-    assert cleaned_df["artist_ids"].isin(["a", "b"]).all()
-
-def test_build_gold_recent_tracks(tmp_path, monkeypatch):
-
-    silver_dir = tmp_path / "data/silver/recent_tracks/2023"
-    silver_dir.mkdir(parents=True)
-
-    df = pd.DataFrame({
-        "id": ["1"],
-        "played_at": ["2023"],
-    })
-
-    file_path = silver_dir / "test.parquet"
-    df.to_parquet(file_path)
-
-    monkeypatch.chdir(tmp_path)
-
-    build_gold_recent_tracks(year="2023")
-
-    gold_dir = tmp_path / "data/gold/recent_tracks"
-    assert gold_dir.exists()
-
-def test_build_gold_top_tracks_calls_pipeline():
-
-    dummy_df = pd.DataFrame({"id": ["1"]})
-
-    with patch("spotify_data_pipeline.helpers.gold_helper.load_silver", return_value=dummy_df), \
-         patch("spotify_data_pipeline.helpers.gold_helper.clean_silver_tracks", return_value={"short": dummy_df}), \
-         patch("spotify_data_pipeline.helpers.gold_helper.unify_silver", return_value=dummy_df) as mock_unify, \
-         patch("spotify_data_pipeline.helpers.gold_helper.write_gold") as mock_write:
-
-        build_gold_top_tracks()
-
-        mock_unify.assert_called_once()
-        mock_write.assert_called_once_with(dummy_df, "top_tracks")
+def test_clean_silver_tracks_empty_input_returns_empty():
+    result = clean_silver_tracks(pd.DataFrame())
+    assert result.empty
