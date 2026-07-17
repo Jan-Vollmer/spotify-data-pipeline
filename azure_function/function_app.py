@@ -10,6 +10,7 @@ from spotify_data_pipeline.Silver.fill_silver_recent_tracks import fill_silver_r
 from spotify_data_pipeline.helpers.artist_helper import process_silver_artists
 from spotify_data_pipeline.helpers.track_helper import process_silver_tracks
 from spotify_data_pipeline.helpers.gold_helper import build_gold_artist, build_gold_top_tracks, build_gold_recent_tracks
+from spotify_data_pipeline.helpers.schema_validation import validate_item_schema
 from datetime import datetime
 from functools import partial
 import logging
@@ -72,6 +73,12 @@ def execute(job_name: str):
     downloaded_at = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     token = get_access_token(job["scope"])
     items = job["func"](token, **job["kwargs"])
+    if items:
+        missing = validate_item_schema(items[0], job_name)
+        if missing:
+            logging.error(f"[{job_name}] Schema mismatch — missing fields: {missing}")
+            raise ValueError(f"Spotify API schema changed for {job_name}: missing {missing}")
+
     write_bronze_batch(entity=job_name, payload=items, downloaded_at=downloaded_at)
     logging.info(f"[{job_name}] wrote {len(items)} items")
     silver_func = JOBS[job_name].get("silver_func")

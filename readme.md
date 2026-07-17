@@ -26,8 +26,8 @@ Regular API snapshots enable:
 - exploratory analytics
 
 The pipeline started as a local prototype to validate the architecture and data model.
-~~With a working Bronze → Silver → Gold pipeline in place, the next step is migrating to Azure~~ —
-**Bronze and Silver layers are now running on Azure** (Azure Functions + Blob Storage). Gold layer migration is the next step.
+~~With a working Bronze → Silver → Gold pipeline in place, the next step is migrating to Azure~~ — **Bronze, Silver, and Gold layers are now running on Azure** (Azure Functions + Blob Storage).
+DuckDB warehouse and Analytics layer remain local — migration pending.
 
 ---
 
@@ -42,7 +42,7 @@ Bronze (raw ingestion, Azure Blob Storage)
     ↓
 Silver (cleaned & normalized datasets, Azure Blob Storage)
     ↓
-Gold (analytics-ready tables) — local, migration pending
+Gold (analytics-ready tables, Azure Blob Storage)
     ↓
 DuckDB Warehouse — local, migration pending
 ```
@@ -66,11 +66,11 @@ DuckDB Warehouse — local, migration pending
 - validation
 - runs immediately after Bronze within the same Function execution
 
-### Gold (local, migration pending)
+### Gold on Azure
 
-- analytics-ready tables
-- curated datasets optimized for querying
-- aggregation and analytical modeling
+- analytics-ready tables, partitioned per scope/time_range
+- runs after Silver within the same Function execution (top_*, per time_range) or on a separate weekly trigger (recent_tracks)
+- writes Parquet to Azure Blob Storage (`gold` container)
 
 ---
 
@@ -236,6 +236,24 @@ All triggers run at 00:00 UTC. On Jan 1st all 7 jobs run simultaneously — no i
 
 ---
 
+# Cost Considerations
+
+The project runs on Azure's consumption-based pricing, chosen deliberately to keep a private/portfolio project near-zero cost:
+
+- **Azure Functions (Consumption Plan)**: pay-per-execution, no idle cost between the weekly/monthly/yearly triggers.
+- **Blob Storage**: last month's actual cost was €0.43, forecast €0.93 for the current month — the increase reflects the Gold layer migration adding more pipelines and files. Current blob capacity: ~460 MB (file share capacity separately reports 530 B, effectively unused).
+- **Transactions**: ~10,370/month, average end-to-end latency 27.88 ms, average server latency 18.09 ms — well within normal range for this data volume, no optimization needed at this scale.
+- **Application Insights**: negligible — 0.00 USD estimated (no web tests configured, custom metrics usage at 120 bytes/month). Log ingestion/retention costs are tracked separately via the linked Log Analytics workspace, not yet itemized here.
+- **Monitoring Alert**: a "no data processed" alert was evaluated at ~$0.50/month and rejected for this private project — manual log review via Application Insights is sufficient at this scale.
+
+Design choices made explicitly to minimize cost:
+- Trigger frequency matched to actual data-consumption need (see Scheduling), not maximal freshness — e.g. weekly Gold rebuild for recent_tracks instead of daily.
+- No dedicated orchestration service (Airflow) — avoided to skip the operational/infrastructure cost of running it on Azure.
+- Gold uses per-scope/time_range writes instead of full rebuilds, reducing compute per run.
+- At current volume (~460 MB, ~10K transactions/month), cost is dominated by the Gold-layer expansion rather than storage capacity — worth revisiting tiering (Hot vs. Cool) only if data volume grows significantly.
+
+---
+
 # Data Warehouse
 
 The project uses **DuckDB** as an embedded analytical database for the Gold layer *(local, migration pending)*.
@@ -317,6 +335,9 @@ Considered for orchestration. Deemed overkill — 7 independent jobs with a simp
 - no fully isolated end-to-end tests using controlled datasets
 - limited validation of final analytical outputs
 - no formal data quality framework (expectations, constraints, validations)
+- DuckDB warehouse and Analytics layer not yet migrated to Azure
+- no automated alerting on Function failures (only the "no data processed" log pattern is monitored)
+
 
 ## Planned Improvements
 
@@ -346,7 +367,8 @@ Considered for orchestration. Deemed overkill — 7 independent jobs with a simp
   - ~~Azure Blob Storage as storage backend (replaces local file system)~~ done (Bronze, Silver)
   - ~~Azure Functions for scheduled, serverless pipeline execution~~ done
   - ~~Service Principal for secure, non-interactive authentication~~ done (OIDC, federated credentials)
-- migrate Gold layer and DuckDB warehouse to Azure
+    - ~~migrate Gold layer to Azure~~ done
+- migrate DuckDB warehouse and Analytics layer to Azure
 - data quality frameworks
 - ML-ready dataset preparation
 - introduce Terraform for infrastructure-as-code
