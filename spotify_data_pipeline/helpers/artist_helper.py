@@ -6,6 +6,7 @@ from spotify_data_pipeline.helpers.blob_utils import (
 )
 from spotify_data_pipeline.helpers.pandas_utils import transform_silver_artist
 from spotify_data_pipeline.helpers.file_utils import extract_date_from_filename
+from spotify_data_pipeline.helpers.data_quality import check_completeness, check_uniqueness
 from pathlib import Path
 
 BRONZE = "bronze"
@@ -32,6 +33,14 @@ def process_silver_artists(time_range: str):
         df["snapshot_date"] = snapshot_date
         df = transform_silver_artist(df)
         df["position"] = range(1, len(df) + 1)
+
+        completeness_issues = check_completeness(df, ["track_id", "track_name", "artist_ids"])
+        if completeness_issues:
+            logging.warning(f"[{blob_path}] Completeness issues: {completeness_issues}")
+
+        dup_count = check_uniqueness(df, subset=["track_id", "snapshot_date"])
+        if dup_count > 0:
+            logging.warning(f"[{blob_path}] {dup_count} duplicate rows detected")        
 
         snapshot_str = snapshot_date.strftime("%Y-%m-%dT%H-%M-%S")
         silver_path = f"top_artists_{time_range}/top_artists_{snapshot_str}.parquet"
