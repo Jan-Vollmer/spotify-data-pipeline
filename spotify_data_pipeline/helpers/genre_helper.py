@@ -40,40 +40,26 @@ def load_all_recent_tracks_silver() -> pd.DataFrame:
     dfs = [df for df in dfs if not df.empty]
     return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
-def get_missing_artist_ids(existing_dim: pd.DataFrame) -> set[str]:
+def get_missing_artist_ids(existing_dim: pd.DataFrame, since_days: int | None = None) -> set[str]:
+    cutoff = pd.Timestamp.now() - pd.Timedelta(days=since_days) if since_days else None
     all_ids = set()
 
     df_recent = load_all_recent_tracks_silver()
     if not df_recent.empty and "artist_ids" in df_recent.columns:
+        if cutoff is not None and "played_at" in df_recent.columns:
+            df_recent = df_recent.copy()
+            df_recent["played_at"] = pd.to_datetime(df_recent["played_at"])
+            df_recent = df_recent[df_recent["played_at"] >= cutoff]
         all_ids.update(df_recent["artist_ids"].explode().dropna())
 
     for term in TERMS:
         df = load_silver("top_tracks", term)
         if df.empty or "artist_ids" not in df.columns:
             continue
-        all_ids.update(df["artist_ids"].explode().dropna())
-
-    known_ids = set(existing_dim["artist_id"]) if not existing_dim.empty else set()
-    return all_ids - known_ids
-
-def get_missing_artist_ids_since(existing_dim: pd.DataFrame, days: int = 7) -> set[str]:
-    cutoff = pd.Timestamp.now() - pd.Timedelta(days=days)
-    all_ids = set()
-
-    df_recent = load_all_recent_tracks_silver()
-    if not df_recent.empty and {"artist_ids", "played_at"} <= set(df_recent.columns):
-        df_recent = df_recent.copy()
-        df_recent["played_at"] = pd.to_datetime(df_recent["played_at"])
-        df_recent = df_recent[df_recent["played_at"] >= cutoff]
-        all_ids.update(df_recent["artist_ids"].explode().dropna())
-
-    for term in TERMS:
-        df = load_silver("top_tracks", term)
-        if df.empty or not {"artist_ids", "snapshot_date"} <= set(df.columns):
-            continue
-        df = df.copy()
-        df["snapshot_date"] = pd.to_datetime(df["snapshot_date"])
-        df = df[df["snapshot_date"] >= cutoff]
+        if cutoff is not None and "snapshot_date" in df.columns:
+            df = df.copy()
+            df["snapshot_date"] = pd.to_datetime(df["snapshot_date"])
+            df = df[df["snapshot_date"] >= cutoff]
         all_ids.update(df["artist_ids"].explode().dropna())
 
     known_ids = set(existing_dim["artist_id"]) if not existing_dim.empty else set()
@@ -125,5 +111,5 @@ def fetch_and_append_missing(access_token: str, missing_ids: set[str], existing_
 
 def update_recent_artist_genres(token: str):
     existing_dim = download_parquet_from_blob(SILVER, GENRE_DIM_PATH)
-    missing = get_missing_artist_ids_since(existing_dim, days=7)
+    missing = get_missing_artist_ids(existing_dim, days=7)
     fetch_and_append_missing(token, missing, existing_dim)

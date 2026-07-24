@@ -5,8 +5,14 @@ from unittest.mock import patch, MagicMock
 from spotify_data_pipeline.helpers.genre_helper import get_artist_genres
 
 def test_build_initial_artist_genre_dim(monkeypatch):
-    df_short = pd.DataFrame({"id": ["a1"], "name": ["Artist1"], "genres": [["pop"]]})
-    df_medium = pd.DataFrame({"id": ["a1"], "name": ["Artist1"], "genres": [["pop"]]})
+    df_short = pd.DataFrame({
+        "id": ["a1"], "name": ["Artist1"], "genres": [["pop"]],
+        "snapshot_date": ["2026-01-01"],
+    })
+    df_medium = pd.DataFrame({
+        "id": ["a1"], "name": ["Artist1"], "genres": [["pop"]],
+        "snapshot_date": ["2026-02-01"],
+    })
     df_long = pd.DataFrame()
 
     with patch("spotify_data_pipeline.helpers.genre_helper.load_silver",
@@ -52,7 +58,7 @@ def test_get_artist_genres_calls_correct_endpoint():
     mock_resp = MagicMock()
     mock_resp.json.return_value = {"artists": [{"id": "a1", "name": "Artist1", "genres": ["pop"]}]}
 
-    with patch("spotify_data_pipeline.Bronze.get_artist_genres.request_with_retry",
+    with patch("spotify_data_pipeline.helpers.genre_helper.request_with_retry",
                return_value=mock_resp) as mock_request:
 
         result = get_artist_genres("token123", ["a1", "a2"])
