@@ -79,9 +79,9 @@ db.con.execute("""
 # dim_genre
 db.con.execute("""
     INSERT OR IGNORE INTO dim_genre (genre_name)
-    SELECT DISTINCT genre
-    FROM read_parquet('data/gold/top_artists/*.parquet'),
-        UNNEST(genres) AS genre
+    SELECT DISTINCT genre_name
+    FROM read_parquet('data/gold/top_artists/*.parquet') t,
+    UNNEST(t.genres) AS genre_unnest(genre_name)
 """)
 
 # dim_term
@@ -100,21 +100,21 @@ db.con.execute("""
 # bridge_artist_genre
 db.con.execute("""
     INSERT OR IGNORE INTO bridge_artist_genre (artist_id, genre_name)
-    SELECT id AS artist_id, genre as genre_name
-    FROM read_parquet('data/gold/top_artists/*.parquet'),
-        UNNEST(genres) AS genre
+    SELECT id AS artist_id, genre_name
+    FROM read_parquet('data/gold/top_artists/*.parquet') t,
+    UNNEST(t.genres) AS genre_unnest(genre_name)
 """)
 
 # bridge_track_artist
 db.con.execute("""
     INSERT OR IGNORE INTO bridge_track_artist(track_id, artist_id)
     SELECT DISTINCT track_id, artist_id
-    FROM read_parquet('data/gold/top_tracks/*.parquet'),
+    FROM read_parquet('data/gold/top_tracks/*.parquet')
 """)
 
 # fact_artist_rankings
 db.con.execute("""
-    INSERT INTO fact_artist_rankings (artist_id, term_id, position, snapshot_date)
+    INSERT OR IGNORE INTO fact_artist_rankings (artist_id, term_id, position, snapshot_date)
     SELECT DISTINCT
         id AS artist_id,
         term AS term_id,
@@ -125,7 +125,7 @@ db.con.execute("""
 
 # fact_track_rankings
 db.con.execute("""
-    INSERT INTO fact_track_rankings (track_id, term_id, position, snapshot_date)
+    INSERT OR IGNORE INTO fact_track_rankings (track_id, term_id, position, snapshot_date)
     SELECT DISTINCT
         track_id,
         term AS term_id,

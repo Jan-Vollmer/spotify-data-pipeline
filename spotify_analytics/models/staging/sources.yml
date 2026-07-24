@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: silver
+    schema: main
+    tables:
+      - name: dim_artist
+      - name: dim_album
+      - name: dim_track
+      - name: dim_genre
+      - name: dim_term
+      - name: bridge_artist_genre
+      - name: bridge_track_artist
+      - name: fact_artist_rankings
+      - name: fact_track_rankings
+      - name: fact_recent_tracks

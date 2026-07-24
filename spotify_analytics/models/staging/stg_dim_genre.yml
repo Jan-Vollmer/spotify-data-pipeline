@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: stg_dim_genre
+    description: >
+      Staging model for the list of distinct genre labels from the
+      Spotify artist enrichment. Grain: one row per genre.
+    columns:
+      - name: genre_name
+        description: Genre label per Spotify's genre taxonomy.
+        tests:
+          - unique
+          - not_null

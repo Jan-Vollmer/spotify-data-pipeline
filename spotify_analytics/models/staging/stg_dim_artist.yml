@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_dim_artist
+    description: >
+      Staging model for artist master data. 1:1 mapping of the silver
+      table dim_artist, no transformation. Grain: one row per artist.
+    columns:
+      - name: artist_id
+        description: Spotify artist ID, unique key.
+        tests:
+          - unique
+          - not_null
+      - name: artist_name
+        description: Artist display name as provided by Spotify.
+        tests:
+          - not_null

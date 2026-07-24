@@ -10,3 +10,4 @@ pandas
 pyarrow
 numpy
 requests
+dbt-duckdb

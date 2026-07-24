@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_bridge_artist_genre
+    description: >
+      Staging model for the many-to-many relationship between artists
+      and genres. Grain: one row per artist+genre combination.
+    columns:
+      - name: artist_id
+        description: References stg_dim_artist.artist_id.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_dim_artist')
+              field: artist_id
+      - name: genre_name
+        description: References stg_dim_genre.genre_name.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_dim_genre')
+              field: genre_name

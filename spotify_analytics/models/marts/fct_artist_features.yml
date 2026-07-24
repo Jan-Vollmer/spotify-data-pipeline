@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: fct_artist_features
+    description: >
+      Gold model with aggregated artist features at monthly grain,
+      consumable for analytics/ML (clustering, popularity prediction).
+      Grain: one row per artist+term+month.
+    columns:
+      - name: artist_id
+        description: References stg_dim_artist.artist_id.
+        tests:
+          - not_null
+      - name: avg_position
+        description: Average chart position within the given month (lower = better ranked).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 500
+      - name: position_stddev
+        description: Standard deviation of chart position within the month, a measure of rank volatility.
+      - name: position_trend_slope
+        description: >
+          Linear regression slope of position over time within the month.
+          Negative = position is decreasing = artist is gaining popularity. NULL when only one snapshot exists.
+      - name: snapshot_count
+        description: Number of snapshots the monthly aggregation is based on.
+        tests:
+          - not_null
+      - name: genres
+        description: Array of all genres for the artist, sourced from the artist-genre bridge.
