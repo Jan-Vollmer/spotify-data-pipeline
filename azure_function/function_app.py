@@ -11,6 +11,7 @@ from spotify_data_pipeline.helpers.artist_helper import process_silver_artists
 from spotify_data_pipeline.helpers.track_helper import process_silver_tracks
 from spotify_data_pipeline.helpers.gold_helper import build_gold_artist, build_gold_top_tracks, build_gold_recent_tracks
 from spotify_data_pipeline.helpers.schema_validation import validate_item_schema
+from spotify_data_pipeline.helpers.genre_helper import update_recent_artist_genres as run_genre_update
 from datetime import datetime
 from functools import partial
 import logging
@@ -120,4 +121,9 @@ def top_artists_medium(timer: func.TimerRequest):
 
 @app.timer_trigger(schedule="0 0 0 1 1 *", arg_name="timer", run_on_startup=False)
 def top_artists_long(timer: func.TimerRequest):
-    execute("top_artists_long")        
+    execute("top_artists_long")
+
+@app.timer_trigger(schedule="0 0 4 * * 1", arg_name="timer", run_on_startup=False)
+def update_recent_artist_genres(timer: func.TimerRequest):
+    token = get_access_token("user-top-read")
+    run_genre_update(token)            
