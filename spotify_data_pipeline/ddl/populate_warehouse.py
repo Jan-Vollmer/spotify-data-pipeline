@@ -21,7 +21,7 @@ CREATE OR REPLACE SECRET azure_conn (
 # Dimensions
 # -----------------------------------------------------------------------------
 
-# dim_artist
+# dim_artist — from top_artists
 db.con.execute("""
 INSERT OR IGNORE INTO dim_artist (artist_id, artist_name)
 SELECT DISTINCT id AS artist_id, name AS artist_name
@@ -29,6 +29,24 @@ FROM read_parquet([
     'az://gold/top_artists_short/*.parquet',
     'az://gold/top_artists_medium/*.parquet',
     'az://gold/top_artists_long/*.parquet'
+])
+""")
+
+# dim_artist — from recent_tracks
+db.con.execute("""
+INSERT OR IGNORE INTO dim_artist (artist_id, artist_name)
+SELECT DISTINCT artist_id, artist_name
+FROM read_parquet('az://gold/recent_tracks/**/*.parquet')
+""")
+
+# dim_artist — from top_tracks
+db.con.execute("""
+INSERT OR IGNORE INTO dim_artist (artist_id, artist_name)
+SELECT DISTINCT artist_id, artist_name
+FROM read_parquet([
+    'az://gold/top_tracks_short/*.parquet',
+    'az://gold/top_tracks_medium/*.parquet',
+    'az://gold/top_tracks_long/*.parquet'
 ])
 """)
 
@@ -67,7 +85,7 @@ SELECT DISTINCT
     explicit,
     track_number,
     album_disc_number AS disc_number
-FROM read_parquet('data/gold/recent_tracks/**/*.parquet')
+FROM read_parquet('az://gold/recent_tracks/**/*.parquet')
 """)
 
 # dim_album
@@ -96,7 +114,7 @@ SELECT DISTINCT
     album_name,
     album_type,
     album_total_tracks
-FROM read_parquet('data/gold/recent_tracks/**/*.parquet')
+FROM read_parquet('az://gold/recent_tracks/**/*.parquet')
 """)
 
 # dim_genre
@@ -141,7 +159,6 @@ UNNEST(t.genres) AS genre_unnest(genre_name)
 # bridge_track_artist
 db.con.execute("""
 INSERT OR IGNORE INTO bridge_track_artist (track_id, artist_id)
-
 SELECT DISTINCT
     track_id,
     artist_id
@@ -149,7 +166,7 @@ FROM read_parquet([
     'az://gold/top_tracks_short/*.parquet',
     'az://gold/top_tracks_medium/*.parquet',
     'az://gold/top_tracks_long/*.parquet'
-]) t,
+])
 """)
 
 # -----------------------------------------------------------------------------
@@ -239,7 +256,7 @@ SELECT DISTINCT
     played_at,
     context_type,
     context
-FROM read_parquet('data/gold/recent_tracks/**/*.parquet')
+FROM read_parquet('az://gold/recent_tracks/**/*.parquet')
 """)
 
 db.con.close()

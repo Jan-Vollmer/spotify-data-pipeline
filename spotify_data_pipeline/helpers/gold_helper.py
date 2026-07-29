@@ -42,9 +42,9 @@ def write_gold(df: pd.DataFrame, scope: str, year: str | None = None):
     logging.info(f"{len(df)} rows written to gold for scope {scope}")
 
 def build_gold_artist(time_range: str):
-    df = load_silver("top_artist", time_range)
+    df = load_silver("top_artists", time_range)
     if df.empty:
-        logging.info(f"No Silvwer data for top_artist/{time_range}")
+        logging.info(f"No Silver data for top_artists/{time_range}")
         return df
     df["term"] = time_range
     df["scope"] = "top_artists"
