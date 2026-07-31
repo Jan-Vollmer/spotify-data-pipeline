@@ -36,6 +36,14 @@ refresh_token*.txt
 *.duckdb
 *.log
 logs/
+.env
+**/.env
+**/*.tfvars
+*.backup
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
 
 # Pytest
 .pytest_cache/

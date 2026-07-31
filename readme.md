@@ -27,7 +27,7 @@ Regular API snapshots enable:
 
 The pipeline started as a local prototype to validate the architecture and data model.
 ~~With a working Bronze → Silver → Gold pipeline in place, the next step is migrating to Azure~~ — **Bronze, Silver, and Gold layers are now running on Azure** (Azure Functions + Blob Storage).
-DuckDB warehouse and Analytics layer remain local — migration pending.
+DuckDB warehouse and dbt run locally, but now read directly from Azure Blob Storage (Gold layer) instead of local files — execution migration (running inside an Azure Function/Container) still pending.
 
 ---
 
@@ -44,7 +44,9 @@ Silver (cleaned & normalized datasets, Azure Blob Storage)
     ↓
 Gold (analytics-ready tables, Azure Blob Storage)
     ↓
-DuckDB Warehouse — local, migration pending
+DuckDB Warehouse — local execution, reads directly from Azure Blob
+    ↓
+dbt (staging + feature engineering, local against DuckDB warehouse)
 ```
 
 ## Layer Responsibilities
@@ -102,6 +104,7 @@ These endpoints enable the creation of a structured historical dataset of listen
 | Testing | Pytest |
 | CI/CD | GitHub Actions |
 | Environment Management | Python Virtual Environment |
+| Transformation / Modeling | dbt (dbt-core + dbt-duckdb adapter) |
 
 ---
 
@@ -258,6 +261,29 @@ Design choices made explicitly to minimize cost:
 
 The project uses **DuckDB** as an embedded analytical database for the Gold layer *(local, migration pending)*.
 
+---
+
+## Structure
+
+- **Staging models** (`stg_*`): 1:1 mappings onto warehouse tables via `source()`, no aggregation. Isolates all downstream models from raw table names.
+- **Marts model** (`fct_artist_features`): grain change from "one row per ranking snapshot" to "one row per artist + term + month", with aggregated metrics (average position, position volatility, linear trend slope, genre array).
+
+## Data Quality
+
+- Generic tests (`not_null`, `unique`, `relationships`) on all staging models, enforcing referential integrity between the bridge and dimension tables.
+- `dbt_utils.accepted_range` on the marts model to catch aggregation errors before they reach downstream analysis.
+- **Source freshness checks** on the three fact tables, flagging silent pipeline staleness (a real incident occurred during development: an Azure Function silently produced no Gold output for `top_artists` due to a naming mismatch, while reporting `Success` — freshness checks are the intended safety net for this failure mode going forward).
+
+## Running
+
+```bash
+cd spotify_analytics
+dbt run
+dbt test
+dbt source freshness
+dbt docs generate && dbt docs serve
+```
+
 ## Benefits
 
 - columnar storage
@@ -266,6 +292,12 @@ The project uses **DuckDB** as an embedded analytical database for the Gold laye
 - reproducible local environment
 
 The warehouse schema is defined using SQL and can be recreated or reset using the provided scripts.
+
+---
+
+# Transformation Layer (dbt)
+
+The warehouse's star schema (Silver-equivalent grain) is transformed into ML/analytics-ready features using **dbt** (dbt-core with the `dbt-duckdb` adapter), running locally against the DuckDB warehouse.
 
 ---
 
@@ -302,6 +334,9 @@ The pipeline follows several core data engineering principles:
 - cloud-native, serverless execution
 
 The implementation intentionally favors **simple and transparent tooling** to prioritize pipeline design over infrastructure complexity. ~~Airflow was considered for orchestration but deemed overkill for this project's scope — the coupled Bronze→Silver execution within Azure Functions covers the dependency requirements without additional infrastructure.~~
+
+### Terraform Service Principal Scope
+A single Service Principal, scoped to the existing resource group (`Contributor` at RG level, not subscription level), is used for Terraform. The resource group itself already exists and is referenced read-only via a `data` block rather than managed by Terraform — so no separate, broader-scoped bootstrap identity is needed to create it. In an organization where Terraform were also responsible for creating the resource group itself, a separate, more privileged bootstrap SP (subscription- or management-group-scoped) would be used for that one-time step, kept distinct from the narrowly-scoped workload SP used for day-to-day `plan`/`apply` runs. For this project, that separation isn't necessary since the bootstrap step doesn't happen through Terraform.
 
 ---
 
@@ -363,15 +398,17 @@ Considered for orchestration. Deemed overkill — 7 independent jobs with a simp
 
 ## Planned Next Steps
 
+## Planned Next Steps
+
 - ~~migrating pipeline execution to Azure (in progress)~~
   - ~~Azure Blob Storage as storage backend (replaces local file system)~~ done (Bronze, Silver)
   - ~~Azure Functions for scheduled, serverless pipeline execution~~ done
   - ~~Service Principal for secure, non-interactive authentication~~ done (OIDC, federated credentials)
     - ~~migrate Gold layer to Azure~~ done
 - migrate DuckDB warehouse and Analytics layer to Azure
-- data quality frameworks
-- ML-ready dataset preparation
-- introduce Terraform for infrastructure-as-code
+- ~~data quality frameworks~~ done (dbt tests + source freshness)
+- ~~ML-ready dataset preparation~~ done (`fct_artist_features`)
+- ~~introduce Terraform for infrastructure-as-code~~ in progress
 
 # Future Extensions
 

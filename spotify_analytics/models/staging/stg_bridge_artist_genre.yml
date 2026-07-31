@@ -11,12 +11,14 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_dim_artist')
-              field: artist_id
+              arguments:
+                to: ref('stg_dim_artist')
+                field: artist_id
       - name: genre_name
         description: References stg_dim_genre.genre_name.
         tests:
           - not_null
           - relationships:
-              to: ref('stg_dim_genre')
-              field: genre_name
+              arguments:
+                to: ref('stg_dim_genre')
+                field: genre_name

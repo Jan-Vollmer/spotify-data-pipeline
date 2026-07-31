@@ -11,8 +11,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_dim_artist')
-              field: artist_id
+              arguments:
+                to: ref('stg_dim_artist')
+                field: artist_id
       - name: position
         description: Artist's rank within the given chart term (1 = top).
         tests:

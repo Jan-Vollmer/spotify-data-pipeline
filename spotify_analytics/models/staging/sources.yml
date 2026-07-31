@@ -4,6 +4,21 @@ sources:
   - name: silver
     schema: main
     tables:
+      - name: fact_artist_rankings
+        loaded_at_field: snapshot_date
+        freshness:
+          warn_after: {count: 2, period: day}
+          error_after: {count: 7, period: day}
+      - name: fact_track_rankings
+        loaded_at_field: snapshot_date
+        freshness:
+          warn_after: {count: 2, period: day}
+          error_after: {count: 7, period: day}
+      - name: fact_recent_tracks
+        loaded_at_field: played_at
+        freshness:
+          warn_after: {count: 2, period: day}
+          error_after: {count: 7, period: day}
       - name: dim_artist
       - name: dim_album
       - name: dim_track
@@ -11,6 +26,3 @@ sources:
       - name: dim_term
       - name: bridge_artist_genre
       - name: bridge_track_artist
-      - name: fact_artist_rankings
-      - name: fact_track_rankings
-      - name: fact_recent_tracks

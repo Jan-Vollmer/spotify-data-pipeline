@@ -26,9 +26,9 @@ db.con.execute("""
 INSERT OR IGNORE INTO dim_artist (artist_id, artist_name)
 SELECT DISTINCT id AS artist_id, name AS artist_name
 FROM read_parquet([
-    'az://gold/top_artists_short/*.parquet',
-    'az://gold/top_artists_medium/*.parquet',
-    'az://gold/top_artists_long/*.parquet'
+    'az://gold/top_artists/short/*.parquet',
+    'az://gold/top_artists/medium/*.parquet',
+    'az://gold/top_artists/long/*.parquet'
 ])
 """)
 
@@ -44,9 +44,9 @@ db.con.execute("""
 INSERT OR IGNORE INTO dim_artist (artist_id, artist_name)
 SELECT DISTINCT artist_id, artist_name
 FROM read_parquet([
-    'az://gold/top_tracks_short/*.parquet',
-    'az://gold/top_tracks_medium/*.parquet',
-    'az://gold/top_tracks_long/*.parquet'
+    'az://gold/top_tracks/short/*.parquet',
+    'az://gold/top_tracks/medium/*.parquet',
+    'az://gold/top_tracks/long/*.parquet'
 ])
 """)
 
@@ -70,9 +70,9 @@ SELECT DISTINCT
     track_number,
     disc_number
 FROM read_parquet([
-    'az://gold/top_tracks_short/*.parquet',
-    'az://gold/top_tracks_medium/*.parquet',
-    'az://gold/top_tracks_long/*.parquet'
+    'az://gold/top_tracks/short/*.parquet',
+    'az://gold/top_tracks/medium/*.parquet',
+    'az://gold/top_tracks/long/*.parquet'
 ])
 
 UNION
@@ -102,9 +102,9 @@ SELECT DISTINCT
     album_type,
     album_total_tracks
 FROM read_parquet([
-    'az://gold/top_tracks_short/*.parquet',
-    'az://gold/top_tracks_medium/*.parquet',
-    'az://gold/top_tracks_long/*.parquet'
+    'az://gold/top_tracks/short/*.parquet',
+    'az://gold/top_tracks/medium/*.parquet',
+    'az://gold/top_tracks/long/*.parquet'
 ])
 
 UNION
@@ -122,9 +122,9 @@ db.con.execute("""
 INSERT OR IGNORE INTO dim_genre (genre_name)
 SELECT DISTINCT genre_name
 FROM read_parquet([
-    'az://gold/top_artists_short/*.parquet',
-    'az://gold/top_artists_medium/*.parquet',
-    'az://gold/top_artists_long/*.parquet'
+    'az://gold/top_artists/short/*.parquet',
+    'az://gold/top_artists/medium/*.parquet',
+    'az://gold/top_artists/long/*.parquet'
 ]) t,
 UNNEST(t.genres) AS genre_unnest(genre_name)
 """)
@@ -149,9 +149,9 @@ SELECT
     id AS artist_id,
     genre_name
 FROM read_parquet([
-    'az://gold/top_artists_short/*.parquet',
-    'az://gold/top_artists_medium/*.parquet',
-    'az://gold/top_artists_long/*.parquet'
+    'az://gold/top_artists/short/*.parquet',
+    'az://gold/top_artists/medium/*.parquet',
+    'az://gold/top_artists/long/*.parquet'
 ]) t,
 UNNEST(t.genres) AS genre_unnest(genre_name)
 """)
@@ -163,9 +163,9 @@ SELECT DISTINCT
     track_id,
     artist_id
 FROM read_parquet([
-    'az://gold/top_tracks_short/*.parquet',
-    'az://gold/top_tracks_medium/*.parquet',
-    'az://gold/top_tracks_long/*.parquet'
+    'az://gold/top_tracks/short/*.parquet',
+    'az://gold/top_tracks/medium/*.parquet',
+    'az://gold/top_tracks/long/*.parquet'
 ])
 """)
 
@@ -187,7 +187,7 @@ SELECT DISTINCT
     's' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_artists_short/*.parquet')
+FROM read_parquet('az://gold/top_artists/short/*.parquet')
 
 UNION ALL
 
@@ -196,7 +196,7 @@ SELECT DISTINCT
     'm' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_artists_medium/*.parquet')
+FROM read_parquet('az://gold/top_artists/medium/*.parquet')
 
 UNION ALL
 
@@ -205,7 +205,7 @@ SELECT DISTINCT
     'l' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_artists_long/*.parquet')
+FROM read_parquet('az://gold/top_artists/long/*.parquet')
 """)
 
 # fact_track_rankings
@@ -222,7 +222,7 @@ SELECT DISTINCT
     's' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_tracks_short/*.parquet')
+FROM read_parquet('az://gold/top_tracks/short/*.parquet')
 
 UNION ALL
 
@@ -231,7 +231,7 @@ SELECT DISTINCT
     'm' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_tracks_medium/*.parquet')
+FROM read_parquet('az://gold/top_tracks/medium/*.parquet')
 
 UNION ALL
 
@@ -240,7 +240,7 @@ SELECT DISTINCT
     'l' AS term_id,
     position,
     snapshot_date
-FROM read_parquet('az://gold/top_tracks_long/*.parquet')
+FROM read_parquet('az://gold/top_tracks/long/*.parquet')
 """)
 
 # fact_recent_tracks
