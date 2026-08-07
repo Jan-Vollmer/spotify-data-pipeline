@@ -48,4 +48,8 @@ terraform.tfvars
 # Pytest
 .pytest_cache/
 htmlcov/
+
+# ML
 .coverage
+spotify-ml-venv/
+.ipynb_checkpoints/
